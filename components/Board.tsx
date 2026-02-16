@@ -5,7 +5,7 @@ import { DragDropContext, Droppable, DropResult } from '@hello-pangea/dnd';
 import Column from './Column';
 import { supabase } from '@/lib/supabase';
 import { useState } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, LayoutGrid, List } from 'lucide-react';
 import TaskModal from './TaskModal';
 
 interface BoardProps {
@@ -37,6 +37,7 @@ export default function Board({ project, tasks, onTasksChange }: BoardProps) {
       return;
     }
 
+    // Optimistic UI update logic remains same
     const task = tasks.find(t => t.id === draggableId);
     if (!task) return;
 
@@ -58,7 +59,6 @@ export default function Board({ project, tasks, onTasksChange }: BoardProps) {
       }
     }
 
-    // Optimistic update
     const { error } = await supabase
       .from('tasks')
       .update({ status: newStatus, position: newPosition, updated_at: new Date().toISOString() })
@@ -66,6 +66,7 @@ export default function Board({ project, tasks, onTasksChange }: BoardProps) {
 
     if (error) {
       console.error('Failed to move task:', error);
+      // Ideally revert state here or show toast
     }
     
     onTasksChange();
@@ -82,31 +83,44 @@ export default function Board({ project, tasks, onTasksChange }: BoardProps) {
   };
 
   return (
-    <div className="h-full flex flex-col p-6 space-y-6 min-w-[1000px]">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">{project.name} Board</h2>
+    <div className="h-full flex flex-col bg-slate-50 dark:bg-zinc-950">
+      {/* Board Header */}
+      <div className="px-6 py-4 bg-white dark:bg-zinc-900 border-b border-slate-200 dark:border-zinc-800 flex items-center justify-between sticky top-0 z-20">
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 bg-primary/10 rounded-lg flex items-center justify-center text-primary">
+            <LayoutGrid className="h-5 w-5" />
+          </div>
+          <div>
+            <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">{project.name}</h2>
+            <p className="text-xs text-slate-500 font-medium">Kanban Board</p>
+          </div>
+        </div>
         <button 
           onClick={handleAddTask}
-          className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 transition-colors"
+          className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium shadow-sm transition-all hover:shadow-md active:scale-95"
         >
           <Plus className="h-4 w-4" />
-          Add Task
+          <span className="hidden sm:inline">New Task</span>
         </button>
       </div>
 
-      <DragDropContext onDragEnd={onDragEnd}>
-        <div className="flex-1 grid grid-cols-4 gap-6 h-full min-h-0">
-          {COLUMNS.map((col) => (
-            <Column
-              key={col.id}
-              id={col.id}
-              title={col.title}
-              tasks={tasks.filter((t) => t.status === col.id).sort((a, b) => a.position - b.position)}
-              onEditTask={handleEditTask}
-            />
-          ))}
-        </div>
-      </DragDropContext>
+      {/* Board Content - Horizontal Scroll Container */}
+      <div className="flex-1 overflow-x-auto overflow-y-hidden p-6">
+        <DragDropContext onDragEnd={onDragEnd}>
+          <div className="h-full flex gap-6 min-w-max pb-2">
+            {COLUMNS.map((col) => (
+              <div key={col.id} className="w-[320px] h-full flex-shrink-0 flex flex-col">
+                <Column
+                  id={col.id}
+                  title={col.title}
+                  tasks={tasks.filter((t) => t.status === col.id).sort((a, b) => a.position - b.position)}
+                  onEditTask={handleEditTask}
+                />
+              </div>
+            ))}
+          </div>
+        </DragDropContext>
+      </div>
 
       {isModalOpen && (
         <TaskModal
