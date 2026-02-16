@@ -1,14 +1,49 @@
--- Kanban Items Table
-CREATE TABLE IF NOT EXISTS kanban_items (
+-- Canonical schema for Kanban Dashboard
+-- Direction chosen: projects/tasks are the source of truth for board data.
+-- Metrics/logging tables are kept for backend telemetry.
+
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
+-- Projects
+CREATE TABLE IF NOT EXISTS projects (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    external_id BIGINT UNIQUE NOT NULL,
-    title TEXT NOT NULL,
-    status TEXT NOT NULL,
-    repository_name TEXT NOT NULL,
-    metadata JSONB DEFAULT '{}'::jsonb,
-    created_at TIMESTAMPTZ DEFAULT now(),
-    updated_at TIMESTAMPTZ DEFAULT now()
+    name TEXT NOT NULL,
+    slug TEXT UNIQUE NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- Tasks (board items)
+CREATE TABLE IF NOT EXISTS tasks (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    project_id UUID REFERENCES projects(id) ON DELETE SET NULL,
+
+    -- Optional GitHub linkage
+    github_external_id BIGINT UNIQUE,
+    github_issue_number INTEGER,
+    repository_name TEXT,
+
+    title TEXT NOT NULL,
+    description TEXT,
+    status TEXT NOT NULL DEFAULT 'todo' CHECK (status IN ('todo', 'in_progress', 'review', 'done')),
+    priority TEXT NOT NULL DEFAULT 'medium' CHECK (priority IN ('low', 'medium', 'high')),
+    assignee TEXT NOT NULL DEFAULT 'unassigned' CHECK (assignee IN ('walter', 'mike', 'gilfoyle', 'dinesh', 'unassigned')),
+    position DOUBLE PRECISION NOT NULL DEFAULT 1000,
+    metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_tasks_project_id ON tasks(project_id);
+CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
+CREATE INDEX IF NOT EXISTS idx_tasks_position ON tasks(position);
+CREATE INDEX IF NOT EXISTS idx_tasks_repository_issue ON tasks(repository_name, github_issue_number);
+
+-- Seed a default project for empty databases
+INSERT INTO projects (name, slug)
+VALUES ('Kanban Dashboard', 'kanban-dashboard')
+ON CONFLICT (slug) DO NOTHING;
 
 -- PR Metrics Table
 CREATE TABLE IF NOT EXISTS pr_metrics (
@@ -32,7 +67,7 @@ CREATE TABLE IF NOT EXISTS agent_run_logs (
     ended_at TIMESTAMPTZ
 );
 
--- Move Metrics Table (Batch 2)
+-- Move Metrics Table
 CREATE TABLE IF NOT EXISTS move_metrics (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     item_id BIGINT NOT NULL,
@@ -42,6 +77,23 @@ CREATE TABLE IF NOT EXISTS move_metrics (
     created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- Index for throughput calculation
 CREATE INDEX IF NOT EXISTS idx_move_metrics_created_at ON move_metrics(created_at);
 
+-- Keep updated_at in sync
+CREATE OR REPLACE FUNCTION set_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = now();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_projects_updated_at ON projects;
+CREATE TRIGGER trg_projects_updated_at
+BEFORE UPDATE ON projects
+FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+DROP TRIGGER IF EXISTS trg_tasks_updated_at ON tasks;
+CREATE TRIGGER trg_tasks_updated_at
+BEFORE UPDATE ON tasks
+FOR EACH ROW EXECUTE FUNCTION set_updated_at();
