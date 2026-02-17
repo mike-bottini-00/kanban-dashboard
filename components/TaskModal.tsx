@@ -2,7 +2,6 @@
 
 import { Project, Task, TaskPriority, TaskAssignee, TaskStatus } from '@/lib/types';
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
 import { X, Calendar, User, Flag, Trash2, Layout } from 'lucide-react';
 import { STATUS_CONFIG, PRIORITY_CONFIG, ASSIGNEE_COLORS } from '@/lib/ui-config';
 import { clsx, type ClassValue } from 'clsx';
@@ -58,29 +57,30 @@ export default function TaskModal({ isOpen, onClose, project, task, onSuccess }:
       updated_at: new Date().toISOString(),
     };
 
-    let error;
-    if (task) {
-      const { error: updateError } = await supabase
-        .from('tasks')
-        .update(taskData)
-        .eq('id', task.id);
-      error = updateError;
-    } else {
-      const { error: insertError } = await supabase
-        .from('tasks')
-        .insert({
-          ...taskData,
-          position: 1000, 
-        });
-      error = insertError;
-    }
+    try {
+      const res = task
+        ? await fetch('/api/tasks', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: task.id, ...taskData }),
+          })
+        : await fetch('/api/tasks', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ...taskData, position: 1000 }),
+          });
 
-    setLoading(false);
-    if (!error) {
-      onSuccess();
-      onClose();
-    } else {
-      console.error(error);
+      setLoading(false);
+      if (res.ok) {
+        onSuccess();
+        onClose();
+      } else {
+        console.error(await res.text());
+        alert('Failed to save task');
+      }
+    } catch (err) {
+      setLoading(false);
+      console.error(err);
       alert('Failed to save task');
     }
   };
@@ -90,16 +90,17 @@ export default function TaskModal({ isOpen, onClose, project, task, onSuccess }:
     if (!confirm('Are you sure you want to delete this task?')) return;
 
     setLoading(true);
-    const { error } = await supabase
-      .from('tasks')
-      .delete()
-      .eq('id', task.id);
-    setLoading(false);
-
-    if (!error) {
-      onSuccess();
-      onClose();
-    } else {
+    try {
+      const res = await fetch(`/api/tasks?id=${task.id}`, { method: 'DELETE' });
+      setLoading(false);
+      if (res.ok) {
+        onSuccess();
+        onClose();
+      } else {
+        alert('Failed to delete task');
+      }
+    } catch (err) {
+      setLoading(false);
       alert('Failed to delete task');
     }
   };

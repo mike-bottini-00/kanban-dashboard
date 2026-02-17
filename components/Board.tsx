@@ -37,13 +37,13 @@ export default function Board({ project, tasks, onTasksChange }: BoardProps) {
       return;
     }
 
-    // Optimistic UI update logic remains same
+    // Optimistic update
     const task = tasks.find(t => t.id === draggableId);
     if (!task) return;
 
     const newStatus = destination.droppableId as TaskStatus;
     
-    // Calculate new position
+    // Calculate new position logic (simplified for brevity, same as before)
     const columnTasks = tasks.filter(t => t.status === newStatus).sort((a, b) => a.position - b.position);
     let newPosition = 0;
 
@@ -66,7 +66,6 @@ export default function Board({ project, tasks, onTasksChange }: BoardProps) {
 
     if (error) {
       console.error('Failed to move task:', error);
-      // Ideally revert state here or show toast
     }
     
     onTasksChange();
@@ -83,33 +82,42 @@ export default function Board({ project, tasks, onTasksChange }: BoardProps) {
   };
 
   return (
-    <div className="h-full flex flex-col bg-slate-50 dark:bg-zinc-950">
-      {/* Board Header */}
-      <div className="px-6 py-4 bg-white dark:bg-zinc-900 border-b border-slate-200 dark:border-zinc-800 flex items-center justify-between sticky top-0 z-20">
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 bg-primary/10 rounded-lg flex items-center justify-center text-primary">
+    <div className="h-full flex flex-col bg-slate-50 dark:bg-zinc-950 w-full relative">
+      {/* Board Header - Responsive */}
+      <div className="px-4 md:px-6 py-3 md:py-4 bg-white dark:bg-zinc-900 border-b border-slate-200 dark:border-zinc-800 flex items-center justify-between sticky top-0 z-20 shrink-0 shadow-sm md:shadow-none">
+        <div className="flex items-center gap-3 overflow-hidden">
+          <div className="h-10 w-10 bg-primary/10 rounded-lg hidden md:flex items-center justify-center text-primary shrink-0">
             <LayoutGrid className="h-5 w-5" />
           </div>
-          <div>
-            <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">{project.name}</h2>
-            <p className="text-xs text-slate-500 font-medium">Kanban Board</p>
+          <div className="min-w-0">
+            {/* Show title on desktop, hide on mobile if redundant (or keep small) */}
+            <h2 className="text-lg md:text-xl font-bold text-slate-900 dark:text-white tracking-tight truncate hidden md:block">
+              {project.name}
+            </h2>
+            <p className="text-xs text-slate-500 font-medium hidden md:block">Kanban Board</p>
+            
+            {/* Mobile Title Alternative (if needed, currently handled by Page header) */}
+            <h2 className="text-sm font-semibold text-slate-900 dark:text-white md:hidden truncate">
+              {project.name}
+            </h2>
           </div>
         </div>
+        
         <button 
           onClick={handleAddTask}
-          className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium shadow-sm transition-all hover:shadow-md active:scale-95"
+          className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-3 md:px-4 py-2 rounded-lg font-medium shadow-sm transition-all hover:shadow-md active:scale-95 text-sm whitespace-nowrap"
         >
           <Plus className="h-4 w-4" />
-          <span className="hidden sm:inline">New Task</span>
+          <span>New Task</span>
         </button>
       </div>
 
       {/* Board Content - Horizontal Scroll Container */}
-      <div className="flex-1 overflow-x-auto overflow-y-hidden p-6">
+      <div className="flex-1 overflow-x-auto overflow-y-hidden p-4 md:p-6 w-full overscroll-x-contain">
         <DragDropContext onDragEnd={onDragEnd}>
-          <div className="h-full flex gap-6 min-w-max pb-2">
+          <div className="h-full flex gap-4 md:gap-6 min-w-max pb-2 snap-x snap-mandatory px-0.5">
             {COLUMNS.map((col) => (
-              <div key={col.id} className="w-[320px] h-full flex-shrink-0 flex flex-col">
+              <div key={col.id} className="w-[85vw] md:w-[320px] h-full flex-shrink-0 flex flex-col snap-center first:pl-0 last:pr-4 md:snap-align-none">
                 <Column
                   id={col.id}
                   title={col.title}
