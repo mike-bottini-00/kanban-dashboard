@@ -53,7 +53,7 @@ export default function KanbanPage() {
 
   if (loading) {
     return (
-      <div className="flex h-screen w-screen items-center justify-center bg-background">
+      <div className="flex h-[100dvh] w-screen items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="h-10 w-10 animate-spin text-primary" />
           <p className="text-muted-foreground text-sm font-medium animate-pulse">Loading workspace...</p>
@@ -63,8 +63,8 @@ export default function KanbanPage() {
   }
 
   return (
-    <div className="flex h-screen bg-background overflow-hidden selection:bg-primary/20">
-      {/* Sidebar - Desktop: static/sticky, Mobile: fixed/drawer */}
+    <div className="flex h-[100dvh] bg-background overflow-hidden relative w-full flex-row">
+      {/* Sidebar Component handles its own desktop vs mobile rendering logic now */}
       <Sidebar 
         projects={projects} 
         selectedProject={selectedProject} 
@@ -77,10 +77,11 @@ export default function KanbanPage() {
       />
 
       {/* Main Content Area */}
-      <main className="flex-1 overflow-hidden relative flex flex-col w-full">
+      <main className="flex-1 flex flex-col h-full overflow-hidden w-full relative z-0">
+        
         {/* Mobile Header (Hidden on Desktop) */}
-        <div className="md:hidden h-14 border-b border-border bg-card flex items-center px-4 justify-between shrink-0">
-          <div className="flex items-center gap-3">
+        <div className="md:hidden h-14 border-b border-border bg-card flex items-center px-4 justify-between shrink-0 sticky top-0 z-20 shadow-sm">
+          <div className="flex items-center gap-3 overflow-hidden">
             <button 
               onClick={() => setIsSidebarOpen(true)}
               className="p-2 -ml-2 text-muted-foreground hover:text-foreground rounded-full hover:bg-muted active:scale-95 transition-all"
