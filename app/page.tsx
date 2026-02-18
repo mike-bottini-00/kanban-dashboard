@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
 import { Project, Task } from '@/lib/types';
 import Board from '@/components/Board';
 import Sidebar from '@/components/Sidebar';
@@ -25,29 +24,30 @@ export default function KanbanPage() {
   }, [selectedProject]);
 
   async function fetchProjects() {
-    const { data, error } = await supabase
-      .from('projects')
-      .select('*')
-      .order('name');
-    
-    if (data) {
-      setProjects(data);
-      if (data.length > 0 && !selectedProject) {
-        setSelectedProject(data[0]);
+    try {
+      const res = await fetch('/api/projects');
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        setProjects(data);
+        if (data.length > 0 && !selectedProject) {
+          setSelectedProject(data[0]);
+        }
       }
+    } catch (err) {
+      console.error('Failed to fetch projects:', err);
     }
     setLoading(false);
   }
 
   async function fetchTasks(projectId: string) {
-    const { data, error } = await supabase
-      .from('tasks')
-      .select('*')
-      .eq('project_id', projectId)
-      .order('position');
-    
-    if (data) {
-      setTasks(data);
+    try {
+      const res = await fetch(`/api/tasks?projectId=${projectId}`);
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        setTasks(data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch tasks:', err);
     }
   }
 

@@ -3,7 +3,6 @@
 import { Project, Task, TaskStatus } from '@/lib/types';
 import { DragDropContext, Droppable, DropResult } from '@hello-pangea/dnd';
 import Column from './Column';
-import { supabase } from '@/lib/supabase';
 import { useState, useEffect } from 'react';
 import { Plus, LayoutGrid, List } from 'lucide-react';
 import TaskModal from './TaskModal';
@@ -66,13 +65,15 @@ export default function Board({ project, tasks, onTasksChange }: BoardProps) {
       }
     }
 
-    const { error } = await supabase
-      .from('tasks')
-      .update({ status: newStatus, position: newPosition, updated_at: new Date().toISOString() })
-      .eq('id', draggableId);
-
-    if (error) {
-      console.error('Failed to move task:', error);
+    try {
+      const res = await fetch('/api/tasks', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: draggableId, status: newStatus, position: newPosition }),
+      });
+      if (!res.ok) console.error('Failed to move task');
+    } catch (err) {
+      console.error('Failed to move task:', err);
     }
     
     onTasksChange();
