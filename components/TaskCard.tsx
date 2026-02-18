@@ -8,6 +8,14 @@ import { User, Clock } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { PRIORITY_CONFIG, ASSIGNEE_COLORS } from '@/lib/ui-config';
 
+const ASSIGNEE_LABELS: Record<Task['assignee'], string> = {
+  walter: 'Walter',
+  mike: 'Mike',
+  gilfoyle: 'Gilfoyle',
+  dinesh: 'Dinesh',
+  unassigned: 'Unassigned',
+};
+
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
@@ -59,19 +67,24 @@ export default function TaskCard({ task, index, onClick }: TaskCardProps) {
               <Clock className="h-3 w-3" />
               <span>{formatDistanceToNow(new Date(task.created_at), { addSuffix: true })}</span>
             </div>
-            
-            <div 
-              className={cn(
-                "h-6 w-6 rounded-full flex items-center justify-center text-[10px] text-white font-bold uppercase ring-2 ring-white dark:ring-zinc-900 shadow-sm transition-transform group-hover:scale-110",
-                assigneeColor
-              )}
-              title={`Assigned to ${task.assignee}`}
-            >
-              {task.assignee === 'unassigned' ? (
-                <User className="h-3 w-3" />
-              ) : (
-                task.assignee.charAt(0)
-              )}
+
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium">
+                {ASSIGNEE_LABELS[task.assignee]}
+              </span>
+              <div 
+                className={cn(
+                  "h-6 w-6 rounded-full flex items-center justify-center text-[10px] text-white font-bold uppercase ring-2 ring-white dark:ring-zinc-900 shadow-sm transition-transform group-hover:scale-110",
+                  assigneeColor
+                )}
+                title={`Assigned to ${ASSIGNEE_LABELS[task.assignee]}`}
+              >
+                {task.assignee === 'unassigned' ? (
+                  <User className="h-3 w-3" />
+                ) : (
+                  task.assignee.charAt(0)
+                )}
+              </div>
             </div>
           </div>
         </div>
