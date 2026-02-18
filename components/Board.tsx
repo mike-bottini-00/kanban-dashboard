@@ -1,9 +1,11 @@
-import { Project, Task, TaskStatus } from '@/lib/types';
-import { DragDropContext, Droppable, DropResult } from '@hello-pangea/dnd';
+import { Project, Task, TaskStatus, TaskPriority, TaskAssignee } from '@/lib/types';
+import { ASSIGNEE_COLORS } from '@/lib/ui-config';
+import { DragDropContext, DropResult } from '@hello-pangea/dnd';
 import Column from './Column';
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { Plus, LayoutGrid, List, Search, Filter, X } from 'lucide-react';
+import { Plus, LayoutGrid, Search, X } from 'lucide-react';
 import TaskModal from './TaskModal';
+import BoardFiltersModal from './BoardFiltersModal';
 
 interface BoardProps {
   project: Project;
@@ -21,26 +23,49 @@ const COLUMNS: { id: TaskStatus; title: string }[] = [
 
 export default function Board({ project, tasks, setTasks, onTasksChange }: BoardProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
+
   const [searchQuery, setSearchQuery] = useState('');
-  const [assigneeFilter, setAssigneeFilter] = useState<string>('all');
+  const [assigneeFilter, setAssigneeFilter] = useState<'all' | TaskAssignee>('all');
+  const [priorityFilter, setPriorityFilter] = useState<'all' | TaskPriority>('all');
+  const [labelFilter, setLabelFilter] = useState<'all' | 'unlabeled' | string>('all');
+
+  const availableLabels = useMemo(() => {
+    const s = new Set<string>();
+    for (const t of tasks) {
+      for (const l of (t.labels || [])) {
+        if (typeof l === 'string' && l.trim()) s.add(l.trim());
+      }
+    }
+    return Array.from(s).sort((a, b) => a.localeCompare(b));
+  }, [tasks]);
 
   // Memoize column data with filtering and stable sort
   const columnsData = useMemo(() => {
-    // 1. Apply Search and Filters
-    const filteredTasks = tasks.filter(task => {
-      const matchesSearch = 
-        task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (task.description?.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        (task.labels?.some(l => l.toLowerCase().includes(searchQuery.toLowerCase())));
-      
-      const matchesAssignee = assigneeFilter === 'all' || task.assignee === assigneeFilter;
+    const q = searchQuery.trim().toLowerCase();
 
-      return matchesSearch && matchesAssignee;
+    // 1. Apply Search and Filters
+    const filteredTasks = tasks.filter((task) => {
+      const matchesSearch =
+        q.length === 0 ||
+        task.title.toLowerCase().includes(q) ||
+        (task.description?.toLowerCase().includes(q) ?? false) ||
+        (task.labels?.some((l) => l.toLowerCase().includes(q)) ?? false);
+
+      const matchesAssignee = assigneeFilter === 'all' || task.assignee === assigneeFilter;
+      const matchesPriority = priorityFilter === 'all' || task.priority === priorityFilter;
+
+      const hasLabels = (task.labels?.length ?? 0) > 0;
+      const matchesLabel =
+        labelFilter === 'all' ||
+        (labelFilter === 'unlabeled' ? !hasLabels : (task.labels || []).includes(labelFilter));
+
+      return matchesSearch && matchesAssignee && matchesPriority && matchesLabel;
     });
 
     // 2. Map to columns
-    return COLUMNS.map(col => {
+    return COLUMNS.map((col) => {
       const columnTasks = filteredTasks
         .filter((t) => t.status === col.id)
         .sort((a, b) => {
@@ -54,84 +79,84 @@ export default function Board({ project, tasks, setTasks, onTasksChange }: Board
 
       return {
         ...col,
-        tasks: columnTasks
+        tasks: columnTasks,
       };
     });
-  }, [tasks, searchQuery, assigneeFilter]);
+  }, [tasks, searchQuery, assigneeFilter, priorityFilter, labelFilter]);
 
   // Listen for mobile header events
   useEffect(() => {
     const handleOpenModal = () => handleAddTask();
     const handleSearch = (e: any) => setSearchQuery(e.detail || '');
+    const handleOpenFilters = () => setIsFiltersOpen(true);
 
     window.addEventListener('open-new-task-modal', handleOpenModal);
     window.addEventListener('board-search', handleSearch);
+    window.addEventListener('board-open-filters', handleOpenFilters);
 
     return () => {
       window.removeEventListener('open-new-task-modal', handleOpenModal);
       window.removeEventListener('board-search', handleSearch);
+      window.removeEventListener('board-open-filters', handleOpenFilters);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const onDragEnd = useCallback(async (result: DropResult) => {
-    const { destination, source, draggableId } = result;
+  const onDragEnd = useCallback(
+    async (result: DropResult) => {
+      const { destination, source, draggableId } = result;
 
-    if (!destination) return;
-    if (
-      destination.droppableId === source.droppableId &&
-      destination.index === source.index
-    ) return;
+      if (!destination) return;
+      if (destination.droppableId === source.droppableId && destination.index === source.index) return;
 
-    const task = tasks.find(t => t.id === draggableId);
-    if (!task) return;
+      const task = tasks.find((t) => t.id === draggableId);
+      if (!task) return;
 
-    const newStatus = destination.droppableId as TaskStatus;
-    
-    // Use the memoized, correctly sorted column tasks for destination
-    const destCol = columnsData.find(c => c.id === newStatus);
-    if (!destCol) return;
+      const newStatus = destination.droppableId as TaskStatus;
 
-    // Filter out the dragged item if it's a same-column move
-    const destTasks = destCol.tasks.filter(t => t.id !== draggableId);
+      // Use the memoized, correctly sorted column tasks for destination
+      const destCol = columnsData.find((c) => c.id === newStatus);
+      if (!destCol) return;
 
-    // Calculate position based on destination index
-    let newPosition: number;
-    if (destTasks.length === 0) {
-      newPosition = 1000;
-    } else if (destination.index === 0) {
-      newPosition = destTasks[0].position / 2;
-    } else if (destination.index >= destTasks.length) {
-      newPosition = destTasks[destTasks.length - 1].position + 1000;
-    } else {
-      newPosition = (destTasks[destination.index - 1].position + destTasks[destination.index].position) / 2;
-    }
+      // Filter out the dragged item if it's a same-column move
+      const destTasks = destCol.tasks.filter((t) => t.id !== draggableId);
 
-    // Optimistic update — using current array to update state immediately
-    setTasks(prev => {
-      const all = prev.map(t =>
-        t.id === draggableId
-          ? { ...t, status: newStatus, position: newPosition }
-          : t
-      );
-      return all;
-    });
+      // Calculate position based on destination index
+      let newPosition: number;
+      if (destTasks.length === 0) {
+        newPosition = 1000;
+      } else if (destination.index === 0) {
+        newPosition = destTasks[0].position / 2;
+      } else if (destination.index >= destTasks.length) {
+        newPosition = destTasks[destTasks.length - 1].position + 1000;
+      } else {
+        newPosition = (destTasks[destination.index - 1].position + destTasks[destination.index].position) / 2;
+      }
 
-    // Sync with server in background
-    try {
-      const res = await fetch('/api/tasks', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: draggableId, status: newStatus, position: newPosition }),
+      // Optimistic update — using current array to update state immediately
+      setTasks((prev) => {
+        const all = prev.map((t) => (t.id === draggableId ? { ...t, status: newStatus, position: newPosition } : t));
+        return all;
       });
-      if (!res.ok) {
-        console.error('Failed to move task');
+
+      // Sync with server in background
+      try {
+        const res = await fetch('/api/tasks', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: draggableId, status: newStatus, position: newPosition }),
+        });
+        if (!res.ok) {
+          console.error('Failed to move task');
+          onTasksChange();
+        }
+      } catch (err) {
+        console.error('Failed to move task:', err);
         onTasksChange();
       }
-    } catch (err) {
-      console.error('Failed to move task:', err);
-      onTasksChange();
-    }
-  }, [tasks, columnsData, setTasks, onTasksChange]);
+    },
+    [tasks, columnsData, setTasks, onTasksChange]
+  );
 
   const handleAddTask = () => {
     setEditingTask(null);
@@ -141,6 +166,12 @@ export default function Board({ project, tasks, setTasks, onTasksChange }: Board
   const handleEditTask = (task: Task) => {
     setEditingTask(task);
     setIsModalOpen(true);
+  };
+
+  const handleClearFilters = () => {
+    setAssigneeFilter('all');
+    setPriorityFilter('all');
+    setLabelFilter('all');
   };
 
   return (
@@ -153,45 +184,116 @@ export default function Board({ project, tasks, setTasks, onTasksChange }: Board
               <LayoutGrid className="h-5 w-5" />
             </div>
             <div className="min-w-0">
-              <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight truncate">
-                {project.name}
-              </h2>
+              <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight truncate">{project.name}</h2>
               <p className="text-xs text-slate-500 font-medium">Kanban Board</p>
             </div>
           </div>
-          
+
           <div className="flex items-center gap-3">
             <div className="relative group">
               <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" />
-              <input 
+              <input
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search tasks, labels..."
-                className="pl-9 pr-4 py-2 bg-slate-50 dark:bg-zinc-800 border-none rounded-lg text-sm w-64 focus:ring-2 focus:ring-primary/20 transition-all"
+                className="pl-9 pr-8 py-2 bg-slate-50 dark:bg-zinc-800 border-none rounded-lg text-sm w-64 focus:ring-2 focus:ring-primary/20 transition-all"
               />
               {searchQuery && (
-                <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  aria-label="Clear search"
+                >
                   <X className="h-3 w-3" />
                 </button>
               )}
             </div>
 
-            <div className="flex items-center bg-slate-50 dark:bg-zinc-800 rounded-lg p-1">
-              <select 
-                value={assigneeFilter}
-                onChange={(e) => setAssigneeFilter(e.target.value)}
-                className="bg-transparent border-none text-xs font-medium focus:ring-0 cursor-pointer pr-8 py-1"
+            <div className="flex items-center gap-1 bg-slate-50 dark:bg-zinc-800 rounded-lg p-1 mr-2">
+              <button
+                onClick={() => setAssigneeFilter('all')}
+                className={`h-7 w-7 rounded-full flex items-center justify-center text-[10px] font-bold transition-all border-2 ${
+                  assigneeFilter === 'all'
+                    ? 'bg-zinc-900 text-white border-zinc-900 dark:bg-white dark:text-zinc-900 dark:border-white scale-110 shadow-sm'
+                    : 'bg-white dark:bg-zinc-700 text-zinc-500 border-transparent hover:bg-zinc-100 dark:hover:bg-zinc-600'
+                }`}
+                title="All Tasks"
               >
-                <option value="all">All Assignees</option>
-                <option value="walter">Walter</option>
-                <option value="mike">Mike</option>
-                <option value="gilfoyle">Gilfoyle</option>
-                <option value="dinesh">Dinesh</option>
-                <option value="unassigned">Unassigned</option>
+                ALL
+              </button>
+              {(Object.keys(ASSIGNEE_COLORS) as TaskAssignee[]).filter(a => a !== 'unassigned').map((assignee) => (
+                <button
+                  key={assignee}
+                  onClick={() => setAssigneeFilter(assignee)}
+                  className={`h-7 w-7 rounded-full flex items-center justify-center text-[10px] text-white font-bold uppercase transition-all border-2 ${
+                    ASSIGNEE_COLORS[assignee]
+                  } ${
+                    assigneeFilter === assignee
+                      ? 'border-zinc-900 dark:border-white scale-110 shadow-sm z-10'
+                      : 'border-transparent opacity-70 hover:opacity-100 hover:scale-105'
+                  }`}
+                  title={`Filter by ${assignee}`}
+                >
+                  {assignee.charAt(0)}
+                </button>
+              ))}
+              <button
+                onClick={() => setAssigneeFilter('unassigned')}
+                className={`h-7 w-7 rounded-full flex items-center justify-center text-[10px] text-white font-bold uppercase transition-all border-2 ${
+                  ASSIGNEE_COLORS.unassigned
+                } ${
+                  assigneeFilter === 'unassigned'
+                    ? 'border-zinc-900 dark:border-white scale-110 shadow-sm z-10'
+                    : 'border-transparent opacity-70 hover:opacity-100 hover:scale-105'
+                }`}
+                title="Unassigned"
+              >
+                ?
+              </button>
+            </div>
+
+            <div className="flex items-center bg-slate-50 dark:bg-zinc-800 rounded-lg p-1">
+              <select
+                value={priorityFilter}
+                onChange={(e) => setPriorityFilter(e.target.value as any)}
+                className="bg-transparent border-none text-xs font-medium focus:ring-0 cursor-pointer pr-8 py-1"
+                aria-label="Filter by priority"
+              >
+                <option value="all">All Priorities</option>
+                <option value="low">Low</option>
+                <option value="medium">Medium</option>
+                <option value="high">High</option>
               </select>
             </div>
 
-            <button 
+            <div className="flex items-center bg-slate-50 dark:bg-zinc-800 rounded-lg p-1">
+              <select
+                value={labelFilter}
+                onChange={(e) => setLabelFilter(e.target.value)}
+                className="bg-transparent border-none text-xs font-medium focus:ring-0 cursor-pointer pr-8 py-1 max-w-[160px]"
+                aria-label="Filter by label"
+              >
+                <option value="all">All Labels</option>
+                <option value="unlabeled">Unlabeled</option>
+                {availableLabels.map((l) => (
+                  <option key={l} value={l}>
+                    {l}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {(assigneeFilter !== 'all' || priorityFilter !== 'all' || labelFilter !== 'all') && (
+              <button
+                type="button"
+                onClick={handleClearFilters}
+                className="text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-slate-100 dark:hover:bg-zinc-800 px-3 py-2 rounded-lg transition-colors"
+              >
+                Clear filters
+              </button>
+            )}
+
+            <button
               onClick={handleAddTask}
               className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium shadow-sm transition-all hover:shadow-md active:scale-95 text-sm whitespace-nowrap ml-2"
             >
@@ -207,13 +309,11 @@ export default function Board({ project, tasks, setTasks, onTasksChange }: Board
         <DragDropContext onDragEnd={onDragEnd}>
           <div className="h-full flex gap-3 md:gap-6 min-w-max pb-4 snap-x snap-mandatory px-1 md:px-0">
             {columnsData.map((col) => (
-              <div key={col.id} className="w-[calc(100vw-2.5rem)] md:w-[320px] h-full flex-shrink-0 flex flex-col snap-center md:snap-align-none">
-                <Column
-                  id={col.id}
-                  title={col.title}
-                  tasks={col.tasks}
-                  onEditTask={handleEditTask}
-                />
+              <div
+                key={col.id}
+                className="w-[calc(100vw-2.5rem)] md:w-[320px] h-full flex-shrink-0 flex flex-col snap-center md:snap-align-none"
+              >
+                <Column id={col.id} title={col.title} tasks={col.tasks} onEditTask={handleEditTask} />
               </div>
             ))}
           </div>
@@ -226,9 +326,23 @@ export default function Board({ project, tasks, setTasks, onTasksChange }: Board
           onClose={() => setIsModalOpen(false)}
           project={project}
           task={editingTask}
+          availableLabels={availableLabels}
           onSuccess={onTasksChange}
         />
       )}
+
+      <BoardFiltersModal
+        isOpen={isFiltersOpen}
+        onClose={() => setIsFiltersOpen(false)}
+        assigneeFilter={assigneeFilter}
+        onAssigneeFilter={setAssigneeFilter}
+        priorityFilter={priorityFilter}
+        onPriorityFilter={setPriorityFilter}
+        labelFilter={labelFilter}
+        onLabelFilter={setLabelFilter}
+        availableLabels={availableLabels}
+        onClear={handleClearFilters}
+      />
     </div>
   );
 }
