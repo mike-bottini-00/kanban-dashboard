@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { Project, Task } from '@/lib/types';
 import Board from '@/components/Board';
 import Sidebar from '@/components/Sidebar';
-import { Loader2, Layout, Menu, PanelLeft, Plus, Search } from 'lucide-react';
+import { Loader2, Layout, Menu, PanelLeft, Plus, Search, Filter } from 'lucide-react';
 
 export default function KanbanPage() {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -26,7 +26,7 @@ export default function KanbanPage() {
 
   async function fetchProjects() {
     try {
-      const res = await fetch('/api/projects');
+      const res = await fetch('/api/projects', { cache: 'no-store' });
       const data = await res.json();
       if (Array.isArray(data)) {
         setProjects(data);
@@ -42,7 +42,7 @@ export default function KanbanPage() {
 
   async function fetchTasks(projectId: string) {
     try {
-      const res = await fetch(`/api/tasks?projectId=${projectId}`);
+      const res = await fetch(`/api/tasks?projectId=${projectId}&_t=${Date.now()}`, { cache: 'no-store' });
       const data = await res.json();
       if (Array.isArray(data)) {
         setTasks(data);
@@ -132,6 +132,17 @@ export default function KanbanPage() {
                   className="w-full pl-9 pr-4 py-1.5 bg-muted/50 border-none rounded-lg text-sm focus:ring-1 focus:ring-primary/20"
                 />
               </div>
+              <button
+                type="button"
+                onClick={() => {
+                  const event = new CustomEvent('board-open-filters');
+                  window.dispatchEvent(event);
+                }}
+                className="shrink-0 bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground p-2 rounded-lg transition-colors"
+                aria-label="Open filters"
+              >
+                <Filter className="h-4 w-4" />
+              </button>
             </div>
           )}
         </div>
