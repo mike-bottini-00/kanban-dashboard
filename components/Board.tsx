@@ -36,42 +36,44 @@ export default function Board({ project, tasks, setTasks, onTasksChange }: Board
     const { destination, source, draggableId } = result;
 
     if (!destination) return;
-
     if (
       destination.droppableId === source.droppableId &&
       destination.index === source.index
-    ) {
-      return;
-    }
+    ) return;
 
-    // Optimistic update
     const task = tasks.find(t => t.id === draggableId);
     if (!task) return;
 
     const newStatus = destination.droppableId as TaskStatus;
-    
-    // Calculate new position
-    const columnTasks = tasks
+    const oldStatus = source.droppableId as TaskStatus;
+
+    // Build the destination column WITHOUT the dragged card
+    const destTasks = tasks
       .filter(t => t.status === newStatus && t.id !== draggableId)
       .sort((a, b) => a.position - b.position);
-    let newPosition = 0;
 
-    if (columnTasks.length === 0) {
+    // Calculate position based on destination index
+    let newPosition: number;
+    if (destTasks.length === 0) {
       newPosition = 1000;
     } else if (destination.index === 0) {
-      newPosition = columnTasks[0].position / 2;
-    } else if (destination.index >= columnTasks.length) {
-      newPosition = columnTasks[columnTasks.length - 1].position + 1000;
+      newPosition = destTasks[0].position / 2;
+    } else if (destination.index >= destTasks.length) {
+      newPosition = destTasks[destTasks.length - 1].position + 1000;
     } else {
-      newPosition = (columnTasks[destination.index - 1].position + columnTasks[destination.index].position) / 2;
+      newPosition = (destTasks[destination.index - 1].position + destTasks[destination.index].position) / 2;
     }
 
-    // Optimistic update — move card instantly in UI
-    setTasks(prev => prev.map(t => 
-      t.id === draggableId 
-        ? { ...t, status: newStatus, position: newPosition } 
-        : t
-    ));
+    // Optimistic update — rebuild columns with correct order to avoid flicker
+    setTasks(prev => {
+      // Update the dragged task
+      const all = prev.map(t =>
+        t.id === draggableId
+          ? { ...t, status: newStatus, position: newPosition }
+          : t
+      );
+      return all;
+    });
 
     // Sync with server in background
     try {
@@ -82,11 +84,11 @@ export default function Board({ project, tasks, setTasks, onTasksChange }: Board
       });
       if (!res.ok) {
         console.error('Failed to move task');
-        onTasksChange(); // Revert on error
+        onTasksChange();
       }
     } catch (err) {
       console.error('Failed to move task:', err);
-      onTasksChange(); // Revert on error
+      onTasksChange();
     }
   };
 
