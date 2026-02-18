@@ -31,9 +31,9 @@ export default function TaskCard({ task, index, onClick }: TaskCardProps) {
           {...provided.dragHandleProps}
           onClick={onClick}
           className={cn(
-            "bg-white dark:bg-zinc-900 p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-sm cursor-grab group transition-all duration-200",
+            "bg-white dark:bg-zinc-900 p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-sm cursor-grab group",
             "hover:border-zinc-300 dark:hover:border-zinc-700 hover:shadow-md",
-            snapshot.isDragging ? "shadow-xl rotate-2 scale-[1.02] ring-2 ring-primary/20 z-50" : ""
+            snapshot.isDragging ? "shadow-xl rotate-2 scale-[1.02] ring-2 ring-primary/20 z-50" : "transition-all duration-200"
           )}
         >
           <div className="flex items-start justify-between gap-3 mb-2">

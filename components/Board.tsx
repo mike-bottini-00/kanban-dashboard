@@ -1,9 +1,7 @@
-'use client';
-
 import { Project, Task, TaskStatus } from '@/lib/types';
 import { DragDropContext, Droppable, DropResult } from '@hello-pangea/dnd';
 import Column from './Column';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Plus, LayoutGrid, List } from 'lucide-react';
 import TaskModal from './TaskModal';
 
@@ -25,6 +23,30 @@ export default function Board({ project, tasks, setTasks, onTasksChange }: Board
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
 
+  // Memoize column data with a stable sort and normalized positions to prevent jitter/reshuffle
+  const columnsData = useMemo(() => {
+    return COLUMNS.map(col => {
+      const columnTasks = tasks
+        .filter((t) => t.status === col.id)
+        .sort((a, b) => {
+          // Stable sort by position, then by ID as a tie-breaker
+          if (a.position !== b.position) return a.position - b.position;
+          return a.id.localeCompare(b.id);
+        })
+        .map((task, index) => ({
+          ...task,
+          // Re-index in-memory to ensure perfectly stable, evenly spaced positions
+          // and avoid any precision ties or jitter during rendering
+          position: (index + 1) * 1000,
+        }));
+
+      return {
+        ...col,
+        tasks: columnTasks
+      };
+    });
+  }, [tasks]);
+
   // Listen for mobile header "New Task" clicks
   useEffect(() => {
     const handleOpenModal = () => handleAddTask();
@@ -32,7 +54,7 @@ export default function Board({ project, tasks, setTasks, onTasksChange }: Board
     return () => window.removeEventListener('open-new-task-modal', handleOpenModal);
   }, []);
 
-  const onDragEnd = async (result: DropResult) => {
+  const onDragEnd = useCallback(async (result: DropResult) => {
     const { destination, source, draggableId } = result;
 
     if (!destination) return;
@@ -45,12 +67,13 @@ export default function Board({ project, tasks, setTasks, onTasksChange }: Board
     if (!task) return;
 
     const newStatus = destination.droppableId as TaskStatus;
-    const oldStatus = source.droppableId as TaskStatus;
+    
+    // Use the memoized, correctly sorted column tasks for destination
+    const destCol = columnsData.find(c => c.id === newStatus);
+    if (!destCol) return;
 
-    // Build the destination column WITHOUT the dragged card
-    const destTasks = tasks
-      .filter(t => t.status === newStatus && t.id !== draggableId)
-      .sort((a, b) => a.position - b.position);
+    // Filter out the dragged item if it's a same-column move
+    const destTasks = destCol.tasks.filter(t => t.id !== draggableId);
 
     // Calculate position based on destination index
     let newPosition: number;
@@ -64,9 +87,8 @@ export default function Board({ project, tasks, setTasks, onTasksChange }: Board
       newPosition = (destTasks[destination.index - 1].position + destTasks[destination.index].position) / 2;
     }
 
-    // Optimistic update — rebuild columns with correct order to avoid flicker
+    // Optimistic update — using current array to update state immediately
     setTasks(prev => {
-      // Update the dragged task
       const all = prev.map(t =>
         t.id === draggableId
           ? { ...t, status: newStatus, position: newPosition }
@@ -90,7 +112,7 @@ export default function Board({ project, tasks, setTasks, onTasksChange }: Board
       console.error('Failed to move task:', err);
       onTasksChange();
     }
-  };
+  }, [tasks, columnsData, setTasks, onTasksChange]);
 
   const handleAddTask = () => {
     setEditingTask(null);
@@ -131,12 +153,12 @@ export default function Board({ project, tasks, setTasks, onTasksChange }: Board
       <div className="flex-1 overflow-x-auto overflow-y-hidden p-3 md:p-6 w-full overscroll-x-contain scrollbar-hide">
         <DragDropContext onDragEnd={onDragEnd}>
           <div className="h-full flex gap-3 md:gap-6 min-w-max pb-4 snap-x snap-mandatory px-1 md:px-0">
-            {COLUMNS.map((col) => (
+            {columnsData.map((col) => (
               <div key={col.id} className="w-[calc(100vw-2.5rem)] md:w-[320px] h-full flex-shrink-0 flex flex-col snap-center md:snap-align-none">
                 <Column
                   id={col.id}
                   title={col.title}
-                  tasks={tasks.filter((t) => t.status === col.id).sort((a, b) => a.position - b.position)}
+                  tasks={col.tasks}
                   onEditTask={handleEditTask}
                 />
               </div>
