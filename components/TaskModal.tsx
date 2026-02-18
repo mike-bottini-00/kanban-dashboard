@@ -3,7 +3,7 @@
 import { Project, Task, TaskPriority, TaskAssignee, TaskStatus, TaskComment } from '@/lib/types';
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { X, Flag, Trash2, Layout, Tag, MessageSquare, Send, User } from 'lucide-react';
-import { STATUS_CONFIG, PRIORITY_CONFIG, ASSIGNEE_COLORS } from '@/lib/ui-config';
+import { STATUS_CONFIG, PRIORITY_CONFIG, ASSIGNEE_COLORS, getLabelColor } from '@/lib/ui-config';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { formatDistanceToNow } from 'date-fns';
@@ -344,17 +344,20 @@ export default function TaskModal({
             </label>
 
             {labels.length > 0 && (
-              <div className="flex flex-wrap gap-1.5">
+              <div className="flex flex-wrap gap-2 mb-2">
                 {labels.map((label) => (
                   <span
                     key={label}
-                    className="bg-primary/10 text-primary text-xs font-semibold px-2 py-0.5 rounded-full flex items-center gap-1 border border-primary/20"
+                    className={cn(
+                      "text-xs font-semibold px-2.5 py-1 rounded-full flex items-center gap-1.5 border transition-all animate-in zoom-in-50 duration-200",
+                      getLabelColor(label)
+                    )}
                   >
                     {label}
                     <button
                       type="button"
                       onClick={() => removeLabel(label)}
-                      className="text-primary hover:text-destructive ml-0.5"
+                      className="hover:text-destructive/80 hover:bg-black/5 dark:hover:bg-white/10 rounded-full p-0.5 transition-colors"
                       aria-label={`Remove label ${label}`}
                     >
                       <X className="h-3 w-3" />
@@ -373,13 +376,16 @@ export default function TaskModal({
             />
 
             {labelSuggestions.length > 0 && (
-              <div className="flex flex-wrap gap-1.5">
+              <div className="flex flex-wrap gap-1.5 mt-2">
                 {labelSuggestions.map((l) => (
                   <button
                     key={l}
                     type="button"
                     onClick={() => addLabel(l)}
-                    className="px-2 py-1 rounded-full text-xs font-semibold bg-muted hover:bg-muted/70 border border-border text-foreground transition-colors"
+                    className={cn(
+                      "px-2 py-0.5 rounded-md text-[10px] font-semibold border transition-all hover:scale-105 active:scale-95 opacity-60 hover:opacity-100",
+                      getLabelColor(l)
+                    )}
                   >
                     + {l}
                   </button>

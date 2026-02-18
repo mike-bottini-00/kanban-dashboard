@@ -6,7 +6,7 @@ import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { User, Clock } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
-import { PRIORITY_CONFIG, ASSIGNEE_COLORS } from '@/lib/ui-config';
+import { PRIORITY_CONFIG, ASSIGNEE_COLORS, getLabelColor } from '@/lib/ui-config';
 
 const ASSIGNEE_LABELS: Record<Task['assignee'], string> = {
   walter: 'Walter',
@@ -57,9 +57,12 @@ export default function TaskCard({ task, index, onClick }: TaskCardProps) {
           </div>
 
           {(task.labels && task.labels.length > 0) && (
-            <div className="flex flex-wrap gap-1 mb-2">
+            <div className="flex flex-wrap gap-1.5 mb-2">
               {task.labels.map(label => (
-                <span key={label} className="px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 text-[10px] font-medium border border-zinc-200 dark:border-zinc-700/50">
+                <span key={label} className={cn(
+                  "px-1.5 py-0.5 rounded-md text-[10px] font-semibold border transition-colors",
+                  getLabelColor(label)
+                )}>
                   {label}
                 </span>
               ))}
