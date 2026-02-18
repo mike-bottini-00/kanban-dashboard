@@ -64,6 +64,21 @@ export async function POST(req: NextRequest) {
     const taskStatus = mapGitHubStatusToTaskStatus(kanbanStatus);
     const defaultProjectId = await getDefaultProjectId();
 
+    // Map GitHub assignee to local assignee if possible
+    const githubAssignee = issue.assignee?.login?.toLowerCase();
+    let localAssignee: any = 'unassigned';
+    const validAssignees = ['walter', 'mike', 'gilfoyle', 'dinesh'];
+    if (githubAssignee && validAssignees.includes(githubAssignee)) {
+      localAssignee = githubAssignee;
+    }
+
+    // Parse due date from body (Format: Due: YYYY-MM-DD)
+    let dueDate: string | null = null;
+    const dueDateMatch = issue.body?.match(/Due:\s*(\d{4}-\d{2}-\d{2})/i);
+    if (dueDateMatch) {
+      dueDate = new Date(dueDateMatch[1]).toISOString();
+    }
+
     const { error } = await supabaseAdmin
       .from('tasks')
       .upsert(
@@ -75,11 +90,13 @@ export async function POST(req: NextRequest) {
           title: issue.title,
           description: issue.body,
           status: taskStatus,
+          assignee: localAssignee,
+          labels: labels,
+          due_date: dueDate,
           metadata: {
             number: issue.number,
             html_url: issue.html_url,
             user: issue.user?.login,
-            labels,
             github_state: issue.state,
             updated_at: issue.updated_at,
           },
