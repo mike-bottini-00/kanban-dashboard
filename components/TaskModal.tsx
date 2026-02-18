@@ -1,11 +1,12 @@
 'use client';
 
 import { Project, Task, TaskPriority, TaskAssignee, TaskStatus, TaskComment } from '@/lib/types';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { X, Flag, Trash2, Layout, Tag, MessageSquare, Send, User } from 'lucide-react';
 import { STATUS_CONFIG, PRIORITY_CONFIG, ASSIGNEE_COLORS } from '@/lib/ui-config';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { formatDistanceToNow } from 'date-fns';
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -47,9 +48,17 @@ export default function TaskModal({
 
   const [comments, setComments] = useState<TaskComment[]>([]);
   const [newComment, setNewComment] = useState('');
+  const [currentUser, setCurrentUser] = useState<TaskAssignee>('walter'); // Mock auth
   const [loading, setLoading] = useState(false);
   const [loadingComments, setLoadingComments] = useState(false);
   const [addingComment, setAddingComment] = useState(false);
+  const commentsEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (commentsEndRef.current) {
+      commentsEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [comments]);
 
   useEffect(() => {
     if (task) {
@@ -105,7 +114,7 @@ export default function TaskModal({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           task_id: task.id,
-          author: 'dinesh',
+          author: currentUser,
           content: newComment.trim(),
         }),
       });
@@ -390,48 +399,89 @@ export default function TaskModal({
           </div>
 
           {task && (
-            <div className="space-y-4 pt-4 border-t border-border">
-              <label className="text-sm font-medium flex items-center gap-2 text-muted-foreground">
-                <MessageSquare className="h-4 w-4" /> Comments
-              </label>
+            <div className="space-y-4 pt-4 border-t border-border mt-4">
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-medium flex items-center gap-2 text-muted-foreground">
+                  <MessageSquare className="h-4 w-4" /> Comments
+                </label>
+                <div className="flex items-center gap-2 text-xs">
+                  <span className="text-muted-foreground">Posting as:</span>
+                  <select 
+                    value={currentUser} 
+                    onChange={(e) => setCurrentUser(e.target.value as TaskAssignee)}
+                    className="bg-transparent border-none text-xs font-medium focus:ring-0 cursor-pointer pr-4 py-0"
+                  >
+                    <option value="walter">Walter</option>
+                    <option value="mike">Mike</option>
+                    <option value="gilfoyle">Gilfoyle</option>
+                    <option value="dinesh">Dinesh</option>
+                  </select>
+                </div>
+              </div>
 
-              <div className="space-y-3 max-h-44 overflow-y-auto pr-2">
+              <div className="space-y-3 max-h-60 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent">
                 {loadingComments ? (
-                  <p className="text-xs text-muted-foreground italic text-center py-2">Loading comments…</p>
+                  <p className="text-xs text-muted-foreground italic text-center py-4">Loading comments…</p>
                 ) : comments.length === 0 ? (
-                  <p className="text-xs text-muted-foreground italic text-center py-2">No comments yet</p>
+                  <div className="text-center py-6 bg-muted/20 rounded-lg border border-dashed border-border/50">
+                    <MessageSquare className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" />
+                    <p className="text-xs text-muted-foreground italic">No comments yet. Start the discussion!</p>
+                  </div>
                 ) : (
-                  comments.map((c) => (
-                    <div key={c.id} className="bg-muted/40 p-3 rounded-lg text-sm border border-border/40">
-                      <div className="flex justify-between items-center mb-1">
-                        <span className="font-bold text-xs capitalize text-primary">{c.author}</span>
-                        <span className="text-[10px] text-muted-foreground">{new Date(c.created_at).toLocaleString()}</span>
+                  <div className="space-y-4">
+                    {comments.map((c) => (
+                      <div key={c.id} className="group flex gap-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                        <div 
+                          className={cn(
+                            "h-8 w-8 rounded-full flex-shrink-0 flex items-center justify-center text-[10px] text-white font-bold uppercase ring-2 ring-background shadow-sm",
+                            ASSIGNEE_COLORS[c.author as TaskAssignee] || "bg-slate-400"
+                          )}
+                          title={c.author}
+                        >
+                          {c.author.charAt(0)}
+                        </div>
+                        <div className="flex-1 space-y-1">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-semibold text-foreground capitalize">{c.author}</span>
+                            <span className="text-[10px] text-muted-foreground">
+                              {formatDistanceToNow(new Date(c.created_at), { addSuffix: true })}
+                            </span>
+                          </div>
+                          <div className="text-sm text-foreground/90 bg-muted/30 p-3 rounded-tr-xl rounded-br-xl rounded-bl-xl border border-border/40 hover:bg-muted/50 transition-colors">
+                            <p className="whitespace-pre-wrap leading-relaxed">{c.content}</p>
+                          </div>
+                        </div>
                       </div>
-                      <p className="text-xs leading-relaxed whitespace-pre-wrap">{c.content}</p>
-                    </div>
-                  ))
+                    ))}
+                    <div ref={commentsEndRef} />
+                  </div>
                 )}
               </div>
 
-              <div className="flex gap-2">
-                <input
+              <div className="flex gap-2 items-start bg-muted/20 p-2 rounded-xl border border-border/50 focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary/50 transition-all">
+                <textarea
                   value={newComment}
                   onChange={(e) => setNewComment(e.target.value)}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
+                    if (e.key === 'Enter' && !e.shiftKey) {
                       e.preventDefault();
                       handleAddComment();
                     }
                   }}
-                  placeholder="Type a comment… (Enter to send)"
-                  className="flex-1 px-3 py-2 rounded-lg border border-input bg-background text-sm focus:ring-1 focus:ring-primary/20"
+                  placeholder={`Comment as ${currentUser}...`}
+                  className="flex-1 px-2 py-1.5 bg-transparent border-none text-sm focus:ring-0 min-h-[40px] max-h-[120px] resize-y placeholder:text-muted-foreground/70"
                   disabled={addingComment}
                 />
                 <button
                   type="button"
                   onClick={handleAddComment}
                   disabled={!newComment.trim() || addingComment}
-                  className="bg-muted hover:bg-primary hover:text-primary-foreground px-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className={cn(
+                    "p-2 rounded-lg transition-all flex-shrink-0",
+                    newComment.trim() 
+                      ? "bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm" 
+                      : "bg-muted text-muted-foreground opacity-50 cursor-not-allowed"
+                  )}
                   aria-label="Send comment"
                 >
                   <Send className="h-4 w-4" />

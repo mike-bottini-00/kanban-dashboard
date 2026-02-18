@@ -86,14 +86,51 @@ export async function PATCH(req: NextRequest) {
       .eq('id', id)
       .single();
 
+    // Prepare comments/activity log
+    const currentMetadata = oldTask?.metadata ?? {};
+    const currentComments = currentMetadata.comments || [];
+    const newComments = [...currentComments];
+    const now = new Date().toISOString();
+
+    if (oldTask) {
+        if (updates.status && updates.status !== oldTask.status) {
+            newComments.push({
+                id: crypto.randomUUID(),
+                task_id: id,
+                author: 'unassigned', 
+                content: `Changed status to ${updates.status}`,
+                created_at: now
+            });
+        }
+        if (updates.priority && updates.priority !== oldTask.priority) {
+            newComments.push({
+                id: crypto.randomUUID(),
+                task_id: id,
+                author: 'unassigned', 
+                content: `Changed priority to ${updates.priority}`,
+                created_at: now
+            });
+        }
+        if (updates.assignee && updates.assignee !== oldTask.assignee) {
+             newComments.push({
+                id: crypto.randomUUID(),
+                task_id: id,
+                author: 'unassigned', 
+                content: `Changed assignee to ${updates.assignee}`,
+                created_at: now
+            });
+        }
+    }
+
     const nextMetadata = {
       ...(oldTask?.metadata ?? {}),
       ...(Array.isArray(labels) ? { labels } : {}),
+      comments: newComments
     };
 
     const { data, error } = await supabaseAdmin
       .from('tasks')
-      .update({ ...updates, metadata: nextMetadata, updated_at: new Date().toISOString() })
+      .update({ ...updates, metadata: nextMetadata, updated_at: now })
       .eq('id', id)
       .select()
       .single();
