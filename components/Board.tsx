@@ -4,7 +4,7 @@ import { Project, Task, TaskStatus } from '@/lib/types';
 import { DragDropContext, Droppable, DropResult } from '@hello-pangea/dnd';
 import Column from './Column';
 import { supabase } from '@/lib/supabase';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, LayoutGrid, List } from 'lucide-react';
 import TaskModal from './TaskModal';
 
@@ -24,6 +24,13 @@ const COLUMNS: { id: TaskStatus; title: string }[] = [
 export default function Board({ project, tasks, onTasksChange }: BoardProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
+
+  // Listen for mobile header "New Task" clicks
+  useEffect(() => {
+    const handleOpenModal = () => handleAddTask();
+    window.addEventListener('open-new-task-modal', handleOpenModal);
+    return () => window.removeEventListener('open-new-task-modal', handleOpenModal);
+  }, []);
 
   const onDragEnd = async (result: DropResult) => {
     const { destination, source, draggableId } = result;
@@ -83,29 +90,23 @@ export default function Board({ project, tasks, onTasksChange }: BoardProps) {
 
   return (
     <div className="h-full flex flex-col bg-slate-50 dark:bg-zinc-950 w-full relative">
-      {/* Board Header - Responsive */}
-      <div className="px-4 md:px-6 py-3 md:py-4 bg-white dark:bg-zinc-900 border-b border-slate-200 dark:border-zinc-800 flex items-center justify-between sticky top-0 z-20 shrink-0 shadow-sm md:shadow-none">
+      {/* Board Header - Responsive (Hidden on mobile as page.tsx header takes over) */}
+      <div className="hidden md:flex px-6 py-4 bg-white dark:bg-zinc-900 border-b border-slate-200 dark:border-zinc-800 items-center justify-between sticky top-0 z-20 shrink-0 shadow-none">
         <div className="flex items-center gap-3 overflow-hidden">
-          <div className="h-10 w-10 bg-primary/10 rounded-lg hidden md:flex items-center justify-center text-primary shrink-0">
+          <div className="h-10 w-10 bg-primary/10 rounded-lg flex items-center justify-center text-primary shrink-0">
             <LayoutGrid className="h-5 w-5" />
           </div>
           <div className="min-w-0">
-            {/* Show title on desktop, hide on mobile if redundant (or keep small) */}
-            <h2 className="text-lg md:text-xl font-bold text-slate-900 dark:text-white tracking-tight truncate hidden md:block">
+            <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight truncate">
               {project.name}
             </h2>
-            <p className="text-xs text-slate-500 font-medium hidden md:block">Kanban Board</p>
-            
-            {/* Mobile Title Alternative (if needed, currently handled by Page header) */}
-            <h2 className="text-sm font-semibold text-slate-900 dark:text-white md:hidden truncate">
-              {project.name}
-            </h2>
+            <p className="text-xs text-slate-500 font-medium">Kanban Board</p>
           </div>
         </div>
         
         <button 
           onClick={handleAddTask}
-          className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-3 md:px-4 py-2 rounded-lg font-medium shadow-sm transition-all hover:shadow-md active:scale-95 text-sm whitespace-nowrap"
+          className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium shadow-sm transition-all hover:shadow-md active:scale-95 text-sm whitespace-nowrap"
         >
           <Plus className="h-4 w-4" />
           <span>New Task</span>
@@ -113,11 +114,11 @@ export default function Board({ project, tasks, onTasksChange }: BoardProps) {
       </div>
 
       {/* Board Content - Horizontal Scroll Container */}
-      <div className="flex-1 overflow-x-auto overflow-y-hidden p-4 md:p-6 w-full overscroll-x-contain">
+      <div className="flex-1 overflow-x-auto overflow-y-hidden p-3 md:p-6 w-full overscroll-x-contain scrollbar-hide">
         <DragDropContext onDragEnd={onDragEnd}>
-          <div className="h-full flex gap-4 md:gap-6 min-w-max pb-2 snap-x snap-mandatory px-0.5">
+          <div className="h-full flex gap-3 md:gap-6 min-w-max pb-4 snap-x snap-mandatory px-1 md:px-0">
             {COLUMNS.map((col) => (
-              <div key={col.id} className="w-[85vw] md:w-[320px] h-full flex-shrink-0 flex flex-col snap-center first:pl-0 last:pr-4 md:snap-align-none">
+              <div key={col.id} className="w-[calc(100vw-2.5rem)] md:w-[320px] h-full flex-shrink-0 flex flex-col snap-center md:snap-align-none">
                 <Column
                   id={col.id}
                   title={col.title}

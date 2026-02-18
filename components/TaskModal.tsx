@@ -147,7 +147,7 @@ export default function TaskModal({ isOpen, onClose, project, task, onSuccess }:
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
             <div className="space-y-2">
               <label className="text-sm font-medium flex items-center gap-2 text-muted-foreground">
                 <Flag className="h-4 w-4" /> Priority
@@ -155,7 +155,7 @@ export default function TaskModal({ isOpen, onClose, project, task, onSuccess }:
               <select
                 value={priority}
                 onChange={(e) => setPriority(e.target.value as TaskPriority)}
-                className="w-full px-3 py-2.5 rounded-lg border border-input bg-background focus:ring-2 focus:ring-primary/20 transition-all text-sm appearance-none"
+                className="w-full px-3 py-2.5 rounded-lg border border-input bg-background focus:ring-2 focus:ring-primary/20 transition-all text-sm appearance-none cursor-pointer"
               >
                 {Object.entries(PRIORITY_CONFIG).map(([key, config]) => (
                   <option key={key} value={key}>
@@ -172,7 +172,7 @@ export default function TaskModal({ isOpen, onClose, project, task, onSuccess }:
               <select
                 value={status}
                 onChange={(e) => setStatus(e.target.value as TaskStatus)}
-                className="w-full px-3 py-2.5 rounded-lg border border-input bg-background focus:ring-2 focus:ring-primary/20 transition-all text-sm appearance-none"
+                className="w-full px-3 py-2.5 rounded-lg border border-input bg-background focus:ring-2 focus:ring-primary/20 transition-all text-sm appearance-none cursor-pointer"
               >
                 {Object.entries(STATUS_CONFIG).map(([key, config]) => (
                   <option key={key} value={key}>

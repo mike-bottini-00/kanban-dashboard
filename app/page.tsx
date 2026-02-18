@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { Project, Task } from '@/lib/types';
 import Board from '@/components/Board';
 import Sidebar from '@/components/Sidebar';
-import { Loader2, Layout, Menu, PanelLeft } from 'lucide-react';
+import { Loader2, Layout, Menu, PanelLeft, Plus } from 'lucide-react';
 
 export default function KanbanPage() {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -72,6 +72,13 @@ export default function KanbanPage() {
           setSelectedProject(p);
           setIsSidebarOpen(false); // Close drawer on selection
         }} 
+        onRefreshProjects={() => {
+          fetchProjects();
+          // If the currently selected project is no longer in the list, clear it
+          if (selectedProject && !projects.find(p => p.id === selectedProject.id)) {
+            setSelectedProject(null);
+          }
+        }}
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
       />
@@ -81,18 +88,34 @@ export default function KanbanPage() {
         
         {/* Mobile Header (Hidden on Desktop) */}
         <div className="md:hidden h-14 border-b border-border bg-card flex items-center px-4 justify-between shrink-0 sticky top-0 z-20 shadow-sm">
-          <div className="flex items-center gap-3 overflow-hidden">
+          <div className="flex items-center gap-3 overflow-hidden mr-2">
             <button 
               onClick={() => setIsSidebarOpen(true)}
-              className="p-2 -ml-2 text-muted-foreground hover:text-foreground rounded-full hover:bg-muted active:scale-95 transition-all"
+              className="p-2 -ml-2 text-muted-foreground hover:text-foreground rounded-full hover:bg-muted active:scale-95 transition-all shrink-0"
+              aria-label="Open navigation menu"
             >
               <Menu className="h-5 w-5" />
             </button>
-            <h1 className="font-bold text-lg tracking-tight truncate max-w-[200px]">
+            <h1 className="font-bold text-lg tracking-tight truncate">
               {selectedProject ? selectedProject.name : 'Kanban'}
             </h1>
           </div>
-          {/* Optional: Add user avatar or settings here for mobile */}
+          
+          {selectedProject && (
+            <button 
+              onClick={() => {
+                // We'll need to trigger handleAddTask from Board somehow.
+                // Or just let Board handle its own header if we prefer.
+                // But Walter wants it to work well, so a clean header is key.
+                const event = new CustomEvent('open-new-task-modal');
+                window.dispatchEvent(event);
+              }}
+              className="bg-primary text-primary-foreground p-2 rounded-lg shadow-sm active:scale-95 transition-transform"
+              aria-label="Create new task"
+            >
+              <Plus className="h-5 w-5" />
+            </button>
+          )}
         </div>
 
         {/* Board Content */}
