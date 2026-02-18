@@ -122,7 +122,8 @@ export default function KanbanPage() {
         {selectedProject ? (
           <Board 
             project={selectedProject} 
-            tasks={tasks} 
+            tasks={tasks}
+            setTasks={setTasks}
             onTasksChange={() => fetchTasks(selectedProject.id)} 
           />
         ) : (

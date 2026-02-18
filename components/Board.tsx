@@ -10,6 +10,7 @@ import TaskModal from './TaskModal';
 interface BoardProps {
   project: Project;
   tasks: Task[];
+  setTasks: React.Dispatch<React.SetStateAction<Task[]>>;
   onTasksChange: () => void;
 }
 
@@ -20,7 +21,7 @@ const COLUMNS: { id: TaskStatus; title: string }[] = [
   { id: 'done', title: 'Done' },
 ];
 
-export default function Board({ project, tasks, onTasksChange }: BoardProps) {
+export default function Board({ project, tasks, setTasks, onTasksChange }: BoardProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
 
@@ -49,34 +50,44 @@ export default function Board({ project, tasks, onTasksChange }: BoardProps) {
 
     const newStatus = destination.droppableId as TaskStatus;
     
-    // Calculate new position logic (simplified for brevity, same as before)
-    const columnTasks = tasks.filter(t => t.status === newStatus).sort((a, b) => a.position - b.position);
+    // Calculate new position
+    const columnTasks = tasks
+      .filter(t => t.status === newStatus && t.id !== draggableId)
+      .sort((a, b) => a.position - b.position);
     let newPosition = 0;
 
     if (columnTasks.length === 0) {
       newPosition = 1000;
+    } else if (destination.index === 0) {
+      newPosition = columnTasks[0].position / 2;
+    } else if (destination.index >= columnTasks.length) {
+      newPosition = columnTasks[columnTasks.length - 1].position + 1000;
     } else {
-      if (destination.index === 0) {
-        newPosition = columnTasks[0].position / 2;
-      } else if (destination.index >= columnTasks.length) {
-        newPosition = columnTasks[columnTasks.length - 1].position + 1000;
-      } else {
-        newPosition = (columnTasks[destination.index - 1].position + columnTasks[destination.index].position) / 2;
-      }
+      newPosition = (columnTasks[destination.index - 1].position + columnTasks[destination.index].position) / 2;
     }
 
+    // Optimistic update — move card instantly in UI
+    setTasks(prev => prev.map(t => 
+      t.id === draggableId 
+        ? { ...t, status: newStatus, position: newPosition } 
+        : t
+    ));
+
+    // Sync with server in background
     try {
       const res = await fetch('/api/tasks', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: draggableId, status: newStatus, position: newPosition }),
       });
-      if (!res.ok) console.error('Failed to move task');
+      if (!res.ok) {
+        console.error('Failed to move task');
+        onTasksChange(); // Revert on error
+      }
     } catch (err) {
       console.error('Failed to move task:', err);
+      onTasksChange(); // Revert on error
     }
-    
-    onTasksChange();
   };
 
   const handleAddTask = () => {
