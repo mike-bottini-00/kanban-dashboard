@@ -2,7 +2,7 @@ import { Project, Task, TaskStatus } from '@/lib/types';
 import { DragDropContext, Droppable, DropResult } from '@hello-pangea/dnd';
 import Column from './Column';
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { Plus, LayoutGrid, List } from 'lucide-react';
+import { Plus, LayoutGrid, List, Search, Filter, X } from 'lucide-react';
 import TaskModal from './TaskModal';
 
 interface BoardProps {
@@ -22,21 +22,33 @@ const COLUMNS: { id: TaskStatus; title: string }[] = [
 export default function Board({ project, tasks, setTasks, onTasksChange }: BoardProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [assigneeFilter, setAssigneeFilter] = useState<string>('all');
 
-  // Memoize column data with a stable sort and normalized positions to prevent jitter/reshuffle
+  // Memoize column data with filtering and stable sort
   const columnsData = useMemo(() => {
+    // 1. Apply Search and Filters
+    const filteredTasks = tasks.filter(task => {
+      const matchesSearch = 
+        task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (task.description?.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (task.labels?.some(l => l.toLowerCase().includes(searchQuery.toLowerCase())));
+      
+      const matchesAssignee = assigneeFilter === 'all' || task.assignee === assigneeFilter;
+
+      return matchesSearch && matchesAssignee;
+    });
+
+    // 2. Map to columns
     return COLUMNS.map(col => {
-      const columnTasks = tasks
+      const columnTasks = filteredTasks
         .filter((t) => t.status === col.id)
         .sort((a, b) => {
-          // Stable sort by position, then by ID as a tie-breaker
           if (a.position !== b.position) return a.position - b.position;
           return a.id.localeCompare(b.id);
         })
         .map((task, index) => ({
           ...task,
-          // Re-index in-memory to ensure perfectly stable, evenly spaced positions
-          // and avoid any precision ties or jitter during rendering
           position: (index + 1) * 1000,
         }));
 
@@ -45,13 +57,20 @@ export default function Board({ project, tasks, setTasks, onTasksChange }: Board
         tasks: columnTasks
       };
     });
-  }, [tasks]);
+  }, [tasks, searchQuery, assigneeFilter]);
 
-  // Listen for mobile header "New Task" clicks
+  // Listen for mobile header events
   useEffect(() => {
     const handleOpenModal = () => handleAddTask();
+    const handleSearch = (e: any) => setSearchQuery(e.detail || '');
+
     window.addEventListener('open-new-task-modal', handleOpenModal);
-    return () => window.removeEventListener('open-new-task-modal', handleOpenModal);
+    window.addEventListener('board-search', handleSearch);
+
+    return () => {
+      window.removeEventListener('open-new-task-modal', handleOpenModal);
+      window.removeEventListener('board-search', handleSearch);
+    };
   }, []);
 
   const onDragEnd = useCallback(async (result: DropResult) => {
@@ -127,26 +146,60 @@ export default function Board({ project, tasks, setTasks, onTasksChange }: Board
   return (
     <div className="h-full flex flex-col bg-slate-50 dark:bg-zinc-950 w-full relative">
       {/* Board Header - Responsive (Hidden on mobile as page.tsx header takes over) */}
-      <div className="hidden md:flex px-6 py-4 bg-white dark:bg-zinc-900 border-b border-slate-200 dark:border-zinc-800 items-center justify-between sticky top-0 z-20 shrink-0 shadow-none">
-        <div className="flex items-center gap-3 overflow-hidden">
-          <div className="h-10 w-10 bg-primary/10 rounded-lg flex items-center justify-center text-primary shrink-0">
-            <LayoutGrid className="h-5 w-5" />
+      <div className="hidden md:flex flex-col bg-white dark:bg-zinc-900 border-b border-slate-200 dark:border-zinc-800 sticky top-0 z-20 shrink-0">
+        <div className="px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3 overflow-hidden">
+            <div className="h-10 w-10 bg-primary/10 rounded-lg flex items-center justify-center text-primary shrink-0">
+              <LayoutGrid className="h-5 w-5" />
+            </div>
+            <div className="min-w-0">
+              <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight truncate">
+                {project.name}
+              </h2>
+              <p className="text-xs text-slate-500 font-medium">Kanban Board</p>
+            </div>
           </div>
-          <div className="min-w-0">
-            <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight truncate">
-              {project.name}
-            </h2>
-            <p className="text-xs text-slate-500 font-medium">Kanban Board</p>
+          
+          <div className="flex items-center gap-3">
+            <div className="relative group">
+              <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" />
+              <input 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search tasks, labels..."
+                className="pl-9 pr-4 py-2 bg-slate-50 dark:bg-zinc-800 border-none rounded-lg text-sm w-64 focus:ring-2 focus:ring-primary/20 transition-all"
+              />
+              {searchQuery && (
+                <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                  <X className="h-3 w-3" />
+                </button>
+              )}
+            </div>
+
+            <div className="flex items-center bg-slate-50 dark:bg-zinc-800 rounded-lg p-1">
+              <select 
+                value={assigneeFilter}
+                onChange={(e) => setAssigneeFilter(e.target.value)}
+                className="bg-transparent border-none text-xs font-medium focus:ring-0 cursor-pointer pr-8 py-1"
+              >
+                <option value="all">All Assignees</option>
+                <option value="walter">Walter</option>
+                <option value="mike">Mike</option>
+                <option value="gilfoyle">Gilfoyle</option>
+                <option value="dinesh">Dinesh</option>
+                <option value="unassigned">Unassigned</option>
+              </select>
+            </div>
+
+            <button 
+              onClick={handleAddTask}
+              className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium shadow-sm transition-all hover:shadow-md active:scale-95 text-sm whitespace-nowrap ml-2"
+            >
+              <Plus className="h-4 w-4" />
+              <span>New Task</span>
+            </button>
           </div>
         </div>
-        
-        <button 
-          onClick={handleAddTask}
-          className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium shadow-sm transition-all hover:shadow-md active:scale-95 text-sm whitespace-nowrap"
-        >
-          <Plus className="h-4 w-4" />
-          <span>New Task</span>
-        </button>
       </div>
 
       {/* Board Content - Horizontal Scroll Container */}

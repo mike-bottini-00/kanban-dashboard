@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { Project, Task } from '@/lib/types';
 import Board from '@/components/Board';
 import Sidebar from '@/components/Sidebar';
-import { Loader2, Layout, Menu, PanelLeft, Plus } from 'lucide-react';
+import { Loader2, Layout, Menu, PanelLeft, Plus, Search } from 'lucide-react';
 
 export default function KanbanPage() {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -12,6 +12,7 @@ export default function KanbanPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     fetchProjects();
@@ -87,34 +88,51 @@ export default function KanbanPage() {
       <main className="flex-1 flex flex-col h-full overflow-hidden w-full relative z-0">
         
         {/* Mobile Header (Hidden on Desktop) */}
-        <div className="md:hidden h-14 border-b border-border bg-card flex items-center px-4 justify-between shrink-0 sticky top-0 z-20 shadow-sm">
-          <div className="flex items-center gap-3 overflow-hidden mr-2">
-            <button 
-              onClick={() => setIsSidebarOpen(true)}
-              className="p-2 -ml-2 text-muted-foreground hover:text-foreground rounded-full hover:bg-muted active:scale-95 transition-all shrink-0"
-              aria-label="Open navigation menu"
-            >
-              <Menu className="h-5 w-5" />
-            </button>
-            <h1 className="font-bold text-lg tracking-tight truncate">
-              {selectedProject ? selectedProject.name : 'Kanban'}
-            </h1>
+        <div className="md:hidden border-b border-border bg-card flex flex-col shrink-0 sticky top-0 z-20 shadow-sm">
+          <div className="h-14 flex items-center px-4 justify-between">
+            <div className="flex items-center gap-3 overflow-hidden mr-2">
+              <button 
+                onClick={() => setIsSidebarOpen(true)}
+                className="p-2 -ml-2 text-muted-foreground hover:text-foreground rounded-full hover:bg-muted active:scale-95 transition-all shrink-0"
+                aria-label="Open navigation menu"
+              >
+                <Menu className="h-5 w-5" />
+              </button>
+              <h1 className="font-bold text-lg tracking-tight truncate">
+                {selectedProject ? selectedProject.name : 'Kanban'}
+              </h1>
+            </div>
+            
+            {selectedProject && (
+              <button 
+                onClick={() => {
+                  const event = new CustomEvent('open-new-task-modal');
+                  window.dispatchEvent(event);
+                }}
+                className="bg-primary text-primary-foreground p-2 rounded-lg shadow-sm active:scale-95 transition-transform"
+                aria-label="Create new task"
+              >
+                <Plus className="h-5 w-5" />
+              </button>
+            )}
           </div>
-          
+
           {selectedProject && (
-            <button 
-              onClick={() => {
-                // We'll need to trigger handleAddTask from Board somehow.
-                // Or just let Board handle its own header if we prefer.
-                // But Walter wants it to work well, so a clean header is key.
-                const event = new CustomEvent('open-new-task-modal');
-                window.dispatchEvent(event);
-              }}
-              className="bg-primary text-primary-foreground p-2 rounded-lg shadow-sm active:scale-95 transition-transform"
-              aria-label="Create new task"
-            >
-              <Plus className="h-5 w-5" />
-            </button>
+            <div className="px-4 pb-3 flex items-center gap-2">
+              <div className="relative flex-1">
+                <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                <input 
+                  value={searchQuery}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    const event = new CustomEvent('board-search', { detail: e.target.value });
+                    window.dispatchEvent(event);
+                  }}
+                  placeholder="Search tasks..."
+                  className="w-full pl-9 pr-4 py-1.5 bg-muted/50 border-none rounded-lg text-sm focus:ring-1 focus:ring-primary/20"
+                />
+              </div>
+            </div>
           )}
         </div>
 

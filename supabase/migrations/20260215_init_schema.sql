@@ -30,6 +30,7 @@ CREATE TABLE IF NOT EXISTS tasks (
     assignee TEXT NOT NULL DEFAULT 'unassigned' CHECK (assignee IN ('walter', 'mike', 'gilfoyle', 'dinesh', 'unassigned')),
     position DOUBLE PRECISION NOT NULL DEFAULT 1000,
     metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+    labels TEXT[] NOT NULL DEFAULT '{}',
 
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()

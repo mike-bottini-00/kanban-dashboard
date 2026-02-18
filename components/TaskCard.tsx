@@ -56,6 +56,16 @@ export default function TaskCard({ task, index, onClick }: TaskCardProps) {
             </span>
           </div>
 
+          {(task.labels && task.labels.length > 0) && (
+            <div className="flex flex-wrap gap-1 mb-2">
+              {task.labels.map(label => (
+                <span key={label} className="px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 text-[10px] font-medium border border-zinc-200 dark:border-zinc-700/50">
+                  {label}
+                </span>
+              ))}
+            </div>
+          )}
+
           {task.description && (
             <p className="text-xs text-zinc-500 dark:text-zinc-400 line-clamp-2 mb-3 leading-relaxed">
               {task.description}

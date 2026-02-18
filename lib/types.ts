@@ -20,4 +20,14 @@ export interface Task {
   position: number;
   created_at: string;
   updated_at: string;
+  labels: string[];
+  due_date: string | null;
+}
+
+export interface TaskComment {
+  id: string;
+  task_id: string;
+  author: TaskAssignee;
+  content: string;
+  created_at: string;
 }

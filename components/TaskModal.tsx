@@ -1,8 +1,8 @@
 'use client';
 
-import { Project, Task, TaskPriority, TaskAssignee, TaskStatus } from '@/lib/types';
+import { Project, Task, TaskPriority, TaskAssignee, TaskStatus, TaskComment } from '@/lib/types';
 import { useState, useEffect } from 'react';
-import { X, Calendar, User, Flag, Trash2, Layout } from 'lucide-react';
+import { X, Calendar, User, Flag, Trash2, Layout, Tag, MessageSquare, Send } from 'lucide-react';
 import { STATUS_CONFIG, PRIORITY_CONFIG, ASSIGNEE_COLORS } from '@/lib/ui-config';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -25,7 +25,12 @@ export default function TaskModal({ isOpen, onClose, project, task, onSuccess }:
   const [priority, setPriority] = useState<TaskPriority>('medium');
   const [assignee, setAssignee] = useState<TaskAssignee>('unassigned');
   const [status, setStatus] = useState<TaskStatus>('todo');
+  const [labels, setLabels] = useState<string[]>([]);
+  const [newLabel, setNewLabel] = useState('');
+  const [comments, setComments] = useState<TaskComment[]>([]);
+  const [newComment, setNewComment] = useState('');
   const [loading, setLoading] = useState(false);
+  const [loadingComments, setLoadingComments] = useState(false);
 
   useEffect(() => {
     if (task) {
@@ -34,14 +39,70 @@ export default function TaskModal({ isOpen, onClose, project, task, onSuccess }:
       setPriority(task.priority);
       setAssignee(task.assignee);
       setStatus(task.status);
+      setLabels(task.labels || []);
+      fetchComments(task.id);
     } else {
       setTitle('');
       setDescription('');
       setPriority('medium');
       setAssignee('unassigned');
       setStatus('todo');
+      setLabels([]);
+      setComments([]);
     }
   }, [task, isOpen]);
+
+  const fetchComments = async (taskId: string) => {
+    setLoadingComments(true);
+    try {
+      const res = await fetch(`/api/comments?taskId=${taskId}`);
+      if (res.ok) {
+        setComments(await res.json());
+      }
+    } catch (err) {
+      console.error('Failed to fetch comments', err);
+    }
+    setLoadingComments(false);
+  };
+
+  const handleAddComment = async () => {
+    if (!task || !newComment.trim()) return;
+    
+    // For demo/overnight, using 'dinesh' as default author if unassigned
+    const author = assignee === 'unassigned' ? 'dinesh' : assignee;
+
+    try {
+      const res = await fetch('/api/comments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          task_id: task.id,
+          author: 'dinesh', // Hardcoded as the "current agent" for this sprint
+          content: newComment,
+        }),
+      });
+      if (res.ok) {
+        setNewComment('');
+        fetchComments(task.id);
+      }
+    } catch (err) {
+      console.error('Failed to add comment', err);
+    }
+  };
+
+  const handleAddLabel = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && newLabel.trim()) {
+      e.preventDefault();
+      if (!labels.includes(newLabel.trim())) {
+        setLabels([...labels, newLabel.trim()]);
+      }
+      setNewLabel('');
+    }
+  };
+
+  const removeLabel = (label: string) => {
+    setLabels(labels.filter(l => l !== label));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,6 +115,7 @@ export default function TaskModal({ isOpen, onClose, project, task, onSuccess }:
       priority,
       assignee,
       status,
+      labels,
       updated_at: new Date().toISOString(),
     };
 
@@ -200,6 +262,29 @@ export default function TaskModal({ isOpen, onClose, project, task, onSuccess }:
             </select>
           </div>
 
+          <div className="space-y-3">
+            <label className="text-sm font-medium flex items-center gap-2 text-muted-foreground">
+              <Tag className="h-4 w-4" /> Labels
+            </label>
+            <div className="flex flex-wrap gap-1.5 mb-2">
+              {labels.map((label) => (
+                <span key={label} className="bg-primary/10 text-primary-foreground text-xs font-semibold px-2 py-0.5 rounded-full flex items-center gap-1 group">
+                  {label}
+                  <button type="button" onClick={() => removeLabel(label)} className="text-primary hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity">
+                    <X className="h-3 w-3" />
+                  </button>
+                </span>
+              ))}
+            </div>
+            <input
+              value={newLabel}
+              onChange={(e) => setNewLabel(e.target.value)}
+              onKeyDown={handleAddLabel}
+              placeholder="Press Enter to add label..."
+              className="w-full px-4 py-2 rounded-lg border border-input bg-background focus:ring-2 focus:ring-primary/20 text-sm"
+            />
+          </div>
+
           <div className="space-y-2">
             <label className="text-sm font-medium flex items-center gap-2 text-muted-foreground">
               Description
@@ -211,6 +296,46 @@ export default function TaskModal({ isOpen, onClose, project, task, onSuccess }:
               placeholder="Add details, checklists, or notes..."
             />
           </div>
+
+          {task && (
+            <div className="space-y-4 pt-4 border-t border-border">
+              <label className="text-sm font-medium flex items-center gap-2 text-muted-foreground">
+                <MessageSquare className="h-4 w-4" /> Comments
+              </label>
+              
+              <div className="space-y-3 max-h-40 overflow-y-auto pr-2">
+                {comments.length === 0 ? (
+                  <p className="text-xs text-muted-foreground italic text-center py-2">No comments yet</p>
+                ) : (
+                  comments.map(c => (
+                    <div key={c.id} className="bg-muted/40 p-2 rounded-lg text-sm border border-border/40">
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="font-bold text-xs capitalize text-primary">{c.author}</span>
+                        <span className="text-[10px] text-muted-foreground">{new Date(c.created_at).toLocaleString()}</span>
+                      </div>
+                      <p className="text-xs leading-relaxed">{c.content}</p>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              <div className="flex gap-2">
+                <input 
+                  value={newComment}
+                  onChange={(e) => setNewComment(e.target.value)}
+                  placeholder="Type a comment..."
+                  className="flex-1 px-3 py-1.5 rounded-lg border border-input bg-background text-sm focus:ring-1 focus:ring-primary/20"
+                />
+                <button 
+                  type="button" 
+                  onClick={handleAddComment}
+                  className="bg-muted hover:bg-primary hover:text-primary-foreground p-2 rounded-lg transition-colors"
+                >
+                  <Send className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          )}
         </form>
 
         <div className="p-4 border-t border-border bg-muted/30 flex items-center justify-between gap-4">
