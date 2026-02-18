@@ -25,15 +25,29 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  return NextResponse.json(data);
+  const normalized = (data ?? []).map((t: any) => ({
+    ...t,
+    labels: Array.isArray(t?.metadata?.labels) ? t.metadata.labels : [],
+  }));
+
+  return NextResponse.json(normalized);
 }
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
+    const { labels, ...rest } = body;
+    const payload = {
+      ...rest,
+      metadata: {
+        ...(rest.metadata ?? {}),
+        ...(Array.isArray(labels) ? { labels } : {}),
+      },
+    };
+
     const { data, error } = await supabaseAdmin
       .from('tasks')
-      .insert(body)
+      .insert(payload)
       .select()
       .single();
 
@@ -52,7 +66,10 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    return NextResponse.json(data);
+    return NextResponse.json({
+      ...data,
+      labels: Array.isArray((data as any)?.metadata?.labels) ? (data as any).metadata.labels : [],
+    });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 400 });
   }
@@ -60,7 +77,7 @@ export async function POST(req: NextRequest) {
 
 export async function PATCH(req: NextRequest) {
   try {
-    const { id, ...updates } = await req.json();
+    const { id, labels, ...updates } = await req.json();
 
     // Fetch old task to compare changes
     const { data: oldTask } = await supabaseAdmin
@@ -69,9 +86,14 @@ export async function PATCH(req: NextRequest) {
       .eq('id', id)
       .single();
 
+    const nextMetadata = {
+      ...(oldTask?.metadata ?? {}),
+      ...(Array.isArray(labels) ? { labels } : {}),
+    };
+
     const { data, error } = await supabaseAdmin
       .from('tasks')
-      .update({ ...updates, updated_at: new Date().toISOString() })
+      .update({ ...updates, metadata: nextMetadata, updated_at: new Date().toISOString() })
       .eq('id', id)
       .select()
       .single();
@@ -107,7 +129,10 @@ export async function PATCH(req: NextRequest) {
       }
     }
 
-    return NextResponse.json(data);
+    return NextResponse.json({
+      ...data,
+      labels: Array.isArray((data as any)?.metadata?.labels) ? (data as any).metadata.labels : [],
+    });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 400 });
   }
