@@ -52,6 +52,7 @@ export default function TaskModal({
   const [loading, setLoading] = useState(false);
   const [loadingComments, setLoadingComments] = useState(false);
   const [addingComment, setAddingComment] = useState(false);
+  const [commentError, setCommentError] = useState<string | null>(null);
   const commentsEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -108,6 +109,7 @@ export default function TaskModal({
     if (!task || !newComment.trim() || addingComment) return;
 
     setAddingComment(true);
+    setCommentError(null);
     try {
       const res = await fetch('/api/comments', {
         method: 'POST',
@@ -121,9 +123,17 @@ export default function TaskModal({
       if (res.ok) {
         setNewComment('');
         await fetchComments(task.id);
+      } else {
+        const errText = await res.text();
+        console.error('Failed to add comment', errText);
+        setCommentError('Failed to send comment. Please try again.');
+        // Auto-clear error after 3 seconds
+        setTimeout(() => setCommentError(null), 3000);
       }
     } catch (err) {
       console.error('Failed to add comment', err);
+      setCommentError('Connection error. Check your network.');
+      setTimeout(() => setCommentError(null), 3000);
     } finally {
       setAddingComment(false);
     }
@@ -464,7 +474,15 @@ export default function TaskModal({
                 )}
               </div>
 
-              <div className="flex gap-2 items-start bg-muted/20 p-2 rounded-xl border border-border/50 focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary/50 transition-all">
+              <div className="flex gap-2 items-start relative bg-muted/20 p-2 rounded-xl border border-border/50 focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary/50 transition-all">
+                {commentError && (
+                  <div className="absolute -top-10 left-0 right-0 bg-destructive text-destructive-foreground text-[10px] py-1 px-3 rounded-md shadow-lg animate-in fade-in slide-in-from-bottom-2 duration-300 z-10 flex items-center justify-between">
+                    <span>{commentError}</span>
+                    <button type="button" onClick={() => setCommentError(null)} className="hover:opacity-70 ml-2">
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                )}
                 <textarea
                   value={newComment}
                   onChange={(e) => setNewComment(e.target.value)}
@@ -490,7 +508,11 @@ export default function TaskModal({
                   )}
                   aria-label="Send comment"
                 >
-                  <Send className="h-4 w-4" />
+                  {addingComment ? (
+                    <div className="h-4 w-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                  ) : (
+                    <Send className="h-4 w-4" />
+                  )}
                 </button>
               </div>
             </div>
