@@ -3,7 +3,7 @@
 import { Project, Task, TaskPriority, TaskAssignee, TaskStatus, TaskComment } from '@/lib/types';
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { X, Flag, Trash2, Layout, Tag, MessageSquare, Send, User } from 'lucide-react';
-import { STATUS_CONFIG, PRIORITY_CONFIG, ASSIGNEE_COLORS, getLabelColor } from '@/lib/ui-config';
+import { STATUS_CONFIG, PRIORITY_CONFIG, ASSIGNEE_COLORS, ASSIGNEE_INITIALS, getLabelColor } from '@/lib/ui-config';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { formatDistanceToNow } from 'date-fns';
@@ -320,14 +320,14 @@ export default function TaskModal({
                       : 'bg-background hover:bg-muted border-input text-foreground hover:border-primary/50'
                   )}
                 >
-                  <span
+                  <div
                     className={cn(
-                      'h-6 w-6 rounded-full flex-shrink-0 flex items-center justify-center text-[11px] text-white font-bold',
+                      'h-6 w-6 rounded-full flex-shrink-0 flex items-center justify-center text-[10px] text-white font-bold uppercase shadow-sm',
                       ASSIGNEE_COLORS[opt.value]
                     )}
                   >
-                    {opt.value === 'unassigned' ? <User className="h-3.5 w-3.5" /> : opt.label.charAt(0)}
-                  </span>
+                    {ASSIGNEE_INITIALS[opt.value]}
+                  </div>
                   <span className="font-medium">{opt.label}</span>
                 </button>
               ))}
@@ -454,7 +454,7 @@ export default function TaskModal({
                           )}
                           title={c.author}
                         >
-                          {c.author.charAt(0)}
+                          {ASSIGNEE_INITIALS[c.author as TaskAssignee] || c.author.charAt(0).toUpperCase()}
                         </div>
                         <div className="flex-1 space-y-1">
                           <div className="flex items-center justify-between">

@@ -2,7 +2,7 @@
 
 import { TaskPriority, TaskAssignee } from '@/lib/types';
 import { Filter, X, Check } from 'lucide-react';
-import { ASSIGNEE_COLORS, PRIORITY_CONFIG } from '@/lib/ui-config';
+import { ASSIGNEE_COLORS, ASSIGNEE_INITIALS, PRIORITY_CONFIG } from '@/lib/ui-config';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -113,7 +113,7 @@ export default function BoardFiltersModal({
                     "h-9 w-9 rounded-full flex items-center justify-center text-[13px] font-bold text-white uppercase shrink-0 shadow-sm",
                     ASSIGNEE_COLORS[a]
                   )}>
-                    {a === 'unassigned' ? '?' : a.charAt(0)}
+                    {ASSIGNEE_INITIALS[a]}
                   </div>
                   <span className="capitalize flex-1 text-left">{a}</span>
                   {assigneeFilters.includes(a) && (

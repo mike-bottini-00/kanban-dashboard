@@ -14,11 +14,27 @@ export const STATUS_CONFIG: Record<TaskStatus, { title: string; borderColor: str
 };
 
 export const ASSIGNEE_COLORS: Record<TaskAssignee, string> = {
-  walter: "bg-indigo-500",
-  mike: "bg-blue-500",
-  gilfoyle: "bg-emerald-500",
-  dinesh: "bg-orange-500",
-  unassigned: "bg-slate-400",
+  walter: "bg-indigo-600 dark:bg-indigo-500",
+  mike: "bg-blue-600 dark:bg-blue-500",
+  gilfoyle: "bg-emerald-600 dark:bg-emerald-500",
+  dinesh: "bg-orange-600 dark:bg-orange-500",
+  unassigned: "bg-slate-400 dark:bg-slate-500",
+};
+
+export const ASSIGNEE_INITIALS: Record<TaskAssignee, string> = {
+  walter: "W",
+  mike: "M",
+  gilfoyle: "G",
+  dinesh: "D",
+  unassigned: "?",
+};
+
+export const ASSIGNEE_TINTS: Record<TaskAssignee, string> = {
+  walter: "border-indigo-500/50 bg-indigo-50/30 dark:bg-indigo-900/10",
+  mike: "border-blue-500/50 bg-blue-50/30 dark:bg-blue-900/10",
+  gilfoyle: "border-emerald-500/50 bg-emerald-50/30 dark:bg-emerald-900/10",
+  dinesh: "border-orange-500/50 bg-orange-50/30 dark:bg-orange-900/10",
+  unassigned: "border-slate-300 dark:border-zinc-700",
 };
 
 const LABEL_PALETTE = [

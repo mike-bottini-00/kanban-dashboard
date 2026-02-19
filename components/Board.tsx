@@ -1,11 +1,12 @@
 import { Project, Task, TaskStatus, TaskPriority, TaskAssignee } from '@/lib/types';
-import { ASSIGNEE_COLORS } from '@/lib/ui-config';
+import { ASSIGNEE_COLORS, ASSIGNEE_INITIALS } from '@/lib/ui-config';
 import { DragDropContext, DropResult } from '@hello-pangea/dnd';
 import Column from './Column';
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { Plus, LayoutGrid, Search, X } from 'lucide-react';
+import { Plus, LayoutGrid, Search, X, Filter } from 'lucide-react';
 import TaskModal from './TaskModal';
 import BoardFiltersModal from './BoardFiltersModal';
+import MultiSelect, { MultiSelectOption } from './MultiSelect';
 
 interface BoardProps {
   project: Project;
@@ -208,7 +209,7 @@ export default function Board({ project, tasks, setTasks, onTasksChange }: Board
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search tasks, labels..."
-                className="pl-9 pr-8 py-2 bg-slate-50 dark:bg-zinc-800 border-none rounded-lg text-sm w-64 focus:ring-2 focus:ring-primary/20 transition-all"
+                className="pl-9 pr-8 py-2 bg-slate-50 dark:bg-zinc-800 border-none rounded-lg text-sm w-48 lg:w-64 focus:ring-2 focus:ring-primary/20 transition-all"
               />
               {searchQuery && (
                 <button
@@ -221,100 +222,60 @@ export default function Board({ project, tasks, setTasks, onTasksChange }: Board
               )}
             </div>
 
-            <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-zinc-800 rounded-lg p-1 mr-3">
-              <button
-                type="button"
-                aria-pressed={assigneeFilters.length === 0}
-                onClick={() => setAssigneeFilters([])}
-                className={`px-3 py-1.5 rounded-md flex items-center justify-center text-[10px] font-bold transition-all border-2 ${
-                  assigneeFilters.length === 0
-                    ? 'bg-zinc-900 text-white border-zinc-900 dark:bg-white dark:text-zinc-900 dark:border-white shadow-sm ring-2 ring-primary/20 scale-105'
-                    : 'bg-white dark:bg-zinc-700 text-zinc-500 border-transparent hover:bg-zinc-100 dark:hover:bg-zinc-600'
-                }`}
-                title="All Tasks"
-              >
-                ALL
-              </button>
-              {(Object.keys(ASSIGNEE_COLORS) as TaskAssignee[]).filter(a => a !== 'unassigned').map((assignee) => (
-                <button
-                  key={assignee}
-                  type="button"
-                  aria-pressed={assigneeFilters.includes(assignee)}
-                  onClick={() => toggleAssigneeFilter(assignee)}
-                  className={`px-2 py-1.5 rounded-md flex items-center gap-2 text-[11px] font-bold uppercase transition-all border-2 ${
-                    assigneeFilters.includes(assignee)
-                      ? 'bg-primary/5 border-primary text-primary ring-2 ring-primary shadow-sm z-10 scale-105'
-                      : 'bg-white dark:bg-zinc-800 border-transparent text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-zinc-700'
-                  }`}
-                  title={`Filter by ${assignee}`}
-                >
-                  <div className={`h-5 w-5 rounded-full flex items-center justify-center text-[10px] text-white shrink-0 ${ASSIGNEE_COLORS[assignee]}`}>
-                    {assignee.charAt(0)}
-                  </div>
-                  <span className="hidden lg:inline">{assignee}</span>
-                </button>
-              ))}
-              <button
-                type="button"
-                aria-pressed={assigneeFilters.includes('unassigned')}
-                onClick={() => toggleAssigneeFilter('unassigned')}
-                className={`px-2 py-1.5 rounded-md flex items-center gap-2 text-[11px] font-bold uppercase transition-all border-2 ${
-                  assigneeFilters.includes('unassigned')
-                    ? 'bg-primary/5 border-primary text-primary ring-2 ring-primary shadow-sm z-10 scale-105'
-                    : 'bg-white dark:bg-zinc-800 border-transparent text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-zinc-700'
-                }`}
-                title="Unassigned"
-              >
-                <div className={`h-5 w-5 rounded-full flex items-center justify-center text-[10px] text-white shrink-0 ${ASSIGNEE_COLORS.unassigned}`}>
-                  ?
-                </div>
-                <span className="hidden lg:inline">Unassigned</span>
-              </button>
-            </div>
+            <div className="flex items-center gap-2">
+              <MultiSelect
+                label="Assignee"
+                selected={assigneeFilters}
+                onChange={(vals) => setAssigneeFilters(vals as TaskAssignee[])}
+                options={[
+                  ...(['walter', 'mike', 'gilfoyle', 'dinesh'] as TaskAssignee[]).map((a) => ({
+                    value: a,
+                    label: a,
+                    colorClass: ASSIGNEE_COLORS[a],
+                    initial: ASSIGNEE_INITIALS[a],
+                  })),
+                  { value: 'unassigned', label: 'Unassigned', colorClass: ASSIGNEE_COLORS.unassigned, initial: '?' },
+                ]}
+              />
 
-            <div className="flex items-center gap-1 bg-slate-50 dark:bg-zinc-800 rounded-lg p-1">
-              {(['low', 'medium', 'high'] as TaskPriority[]).map((p) => (
-                <button
-                  key={p}
-                  type="button"
-                  aria-pressed={priorityFilters.includes(p)}
-                  onClick={() => togglePriorityFilter(p)}
-                  className={`px-3 py-1 rounded-md text-[10px] font-bold uppercase transition-all border ${
-                    priorityFilters.includes(p)
-                      ? 'bg-primary text-primary-foreground border-primary scale-105'
-                      : 'bg-white dark:bg-zinc-700 text-zinc-500 border-transparent hover:bg-zinc-100 dark:hover:bg-zinc-600'
-                  }`}
-                  title={`Filter by ${p} priority`}
-                >
-                  {p}
-                </button>
-              ))}
-            </div>
+              <MultiSelect
+                label="Priority"
+                selected={priorityFilters}
+                onChange={(vals) => setPriorityFilters(vals as TaskPriority[])}
+                options={[
+                  { value: 'low', label: 'Low' },
+                  { value: 'medium', label: 'Medium' },
+                  { value: 'high', label: 'High' },
+                ]}
+              />
 
-            <div className="flex items-center bg-slate-50 dark:bg-zinc-800 rounded-lg p-1">
-              <select
-                value={labelFilter}
-                onChange={(e) => setLabelFilter(e.target.value)}
-                className="bg-transparent border-none text-xs font-medium focus:ring-0 cursor-pointer pr-8 py-1 max-w-[160px]"
-                aria-label="Filter by label"
-              >
-                <option value="all">All Labels</option>
-                <option value="unlabeled">Unlabeled</option>
-                {availableLabels.map((l) => (
-                  <option key={l} value={l}>
-                    {l}
-                  </option>
-                ))}
-              </select>
+              <div className="flex items-center bg-slate-50 dark:bg-zinc-800 rounded-lg p-1.5 h-9 border border-transparent hover:bg-slate-100 dark:hover:bg-zinc-700 transition-colors">
+                <Filter className="h-4 w-4 text-muted-foreground ml-1" />
+                <select
+                  value={labelFilter}
+                  onChange={(e) => setLabelFilter(e.target.value)}
+                  className="bg-transparent border-none text-sm font-medium focus:ring-0 cursor-pointer pr-8 py-0 max-w-[140px]"
+                  aria-label="Filter by label"
+                >
+                  <option value="all">All Labels</option>
+                  <option value="unlabeled">Unlabeled</option>
+                  {availableLabels.map((l) => (
+                    <option key={l} value={l}>
+                      {l}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             {(assigneeFilters.length > 0 || priorityFilters.length > 0 || labelFilter !== 'all') && (
               <button
                 type="button"
                 onClick={handleClearFilters}
-                className="text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-slate-100 dark:hover:bg-zinc-800 px-3 py-2 rounded-lg transition-colors"
+                className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
+                title="Clear all filters"
               >
-                Clear filters
+                <X className="h-4 w-4" />
               </button>
             )}
 
