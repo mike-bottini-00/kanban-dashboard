@@ -221,12 +221,14 @@ export default function Board({ project, tasks, setTasks, onTasksChange }: Board
               )}
             </div>
 
-            <div className="flex items-center gap-1 bg-slate-50 dark:bg-zinc-800 rounded-lg p-1 mr-2">
+            <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-zinc-800 rounded-lg p-1 mr-3">
               <button
+                type="button"
+                aria-pressed={assigneeFilters.length === 0}
                 onClick={() => setAssigneeFilters([])}
-                className={`h-7 w-7 rounded-full flex items-center justify-center text-[10px] font-bold transition-all border-2 ${
+                className={`px-3 py-1.5 rounded-md flex items-center justify-center text-[10px] font-bold transition-all border-2 ${
                   assigneeFilters.length === 0
-                    ? 'bg-zinc-900 text-white border-zinc-900 dark:bg-white dark:text-zinc-900 dark:border-white scale-110 shadow-sm'
+                    ? 'bg-zinc-900 text-white border-zinc-900 dark:bg-white dark:text-zinc-900 dark:border-white shadow-sm ring-2 ring-primary/20 scale-105'
                     : 'bg-white dark:bg-zinc-700 text-zinc-500 border-transparent hover:bg-zinc-100 dark:hover:bg-zinc-600'
                 }`}
                 title="All Tasks"
@@ -236,31 +238,37 @@ export default function Board({ project, tasks, setTasks, onTasksChange }: Board
               {(Object.keys(ASSIGNEE_COLORS) as TaskAssignee[]).filter(a => a !== 'unassigned').map((assignee) => (
                 <button
                   key={assignee}
+                  type="button"
+                  aria-pressed={assigneeFilters.includes(assignee)}
                   onClick={() => toggleAssigneeFilter(assignee)}
-                  className={`h-7 w-7 rounded-full flex items-center justify-center text-[10px] text-white font-bold uppercase transition-all border-2 ${
-                    ASSIGNEE_COLORS[assignee]
-                  } ${
+                  className={`px-2 py-1.5 rounded-md flex items-center gap-2 text-[11px] font-bold uppercase transition-all border-2 ${
                     assigneeFilters.includes(assignee)
-                      ? 'border-zinc-900 dark:border-white scale-110 shadow-sm z-10'
-                      : 'border-transparent opacity-70 hover:opacity-100 hover:scale-105'
+                      ? 'bg-primary/5 border-primary text-primary ring-2 ring-primary shadow-sm z-10 scale-105'
+                      : 'bg-white dark:bg-zinc-800 border-transparent text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-zinc-700'
                   }`}
                   title={`Filter by ${assignee}`}
                 >
-                  {assignee.charAt(0)}
+                  <div className={`h-5 w-5 rounded-full flex items-center justify-center text-[10px] text-white shrink-0 ${ASSIGNEE_COLORS[assignee]}`}>
+                    {assignee.charAt(0)}
+                  </div>
+                  <span className="hidden lg:inline">{assignee}</span>
                 </button>
               ))}
               <button
+                type="button"
+                aria-pressed={assigneeFilters.includes('unassigned')}
                 onClick={() => toggleAssigneeFilter('unassigned')}
-                className={`h-7 w-7 rounded-full flex items-center justify-center text-[10px] text-white font-bold uppercase transition-all border-2 ${
-                  ASSIGNEE_COLORS.unassigned
-                } ${
+                className={`px-2 py-1.5 rounded-md flex items-center gap-2 text-[11px] font-bold uppercase transition-all border-2 ${
                   assigneeFilters.includes('unassigned')
-                    ? 'border-zinc-900 dark:border-white scale-110 shadow-sm z-10'
-                    : 'border-transparent opacity-70 hover:opacity-100 hover:scale-105'
+                    ? 'bg-primary/5 border-primary text-primary ring-2 ring-primary shadow-sm z-10 scale-105'
+                    : 'bg-white dark:bg-zinc-800 border-transparent text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-zinc-700'
                 }`}
                 title="Unassigned"
               >
-                ?
+                <div className={`h-5 w-5 rounded-full flex items-center justify-center text-[10px] text-white shrink-0 ${ASSIGNEE_COLORS.unassigned}`}>
+                  ?
+                </div>
+                <span className="hidden lg:inline">Unassigned</span>
               </button>
             </div>
 
@@ -268,6 +276,8 @@ export default function Board({ project, tasks, setTasks, onTasksChange }: Board
               {(['low', 'medium', 'high'] as TaskPriority[]).map((p) => (
                 <button
                   key={p}
+                  type="button"
+                  aria-pressed={priorityFilters.includes(p)}
                   onClick={() => togglePriorityFilter(p)}
                   className={`px-3 py-1 rounded-md text-[10px] font-bold uppercase transition-all border ${
                     priorityFilters.includes(p)

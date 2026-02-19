@@ -97,24 +97,30 @@ export default function BoardFiltersModal({
                 </button>
               )}
             </div>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {ASSIGNEES.map((a) => (
                 <button
                   key={a}
                   onClick={() => toggleAssignee(a)}
                   className={cn(
-                    "flex items-center gap-3 px-3 py-2.5 rounded-xl border text-sm font-medium transition-all",
+                    "flex items-center gap-3 px-3 py-2.5 rounded-xl border text-sm font-medium transition-all min-h-[56px]",
                     assigneeFilters.includes(a)
-                      ? "bg-primary/5 border-primary text-primary ring-1 ring-primary/20"
+                      ? "bg-primary/5 border-primary text-primary ring-2 ring-primary/20 shadow-sm"
                       : "bg-background border-border text-foreground hover:border-primary/30"
                   )}
                 >
                   <div className={cn(
-                    "h-2 w-2 rounded-full",
-                    assigneeFilters.includes(a) ? "bg-primary" : "bg-muted-foreground/30"
-                  )} />
-                  <span className="capitalize">{a}</span>
-                  {assigneeFilters.includes(a) && <Check className="h-3.5 w-3.5 ml-auto" />}
+                    "h-9 w-9 rounded-full flex items-center justify-center text-[13px] font-bold text-white uppercase shrink-0 shadow-sm",
+                    ASSIGNEE_COLORS[a]
+                  )}>
+                    {a === 'unassigned' ? '?' : a.charAt(0)}
+                  </div>
+                  <span className="capitalize flex-1 text-left">{a}</span>
+                  {assigneeFilters.includes(a) && (
+                    <div className="h-5 w-5 rounded-full bg-primary flex items-center justify-center shrink-0">
+                      <Check className="h-3.5 w-3.5 text-primary-foreground" />
+                    </div>
+                  )}
                 </button>
               ))}
             </div>
@@ -138,9 +144,9 @@ export default function BoardFiltersModal({
                   key={p}
                   onClick={() => togglePriority(p)}
                   className={cn(
-                    "flex items-center gap-2 px-4 py-2 rounded-full border text-sm font-medium transition-all",
+                    "flex items-center gap-2 px-4 py-2.5 rounded-full border text-sm font-medium transition-all min-w-[100px] justify-center",
                     priorityFilters.includes(p)
-                      ? "bg-primary text-primary-foreground border-primary shadow-sm scale-105"
+                      ? "bg-primary text-primary-foreground border-primary shadow-sm scale-105 ring-2 ring-primary/20"
                       : "bg-background border-border text-foreground hover:border-primary/30"
                   )}
                 >
