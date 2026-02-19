@@ -17,32 +17,32 @@ export const ASSIGNEE_CONFIG: Record<TaskAssignee, { label: string; initial: str
   walter: {
     label: "Walter",
     initial: "W",
-    color: "bg-indigo-600 dark:bg-indigo-500",
-    tint: "border-indigo-500/50 bg-indigo-50/30 dark:bg-indigo-900/10",
+    color: "bg-indigo-500",
+    tint: "border-indigo-500",
   },
   mike: {
     label: "Mike",
     initial: "M",
-    color: "bg-blue-600 dark:bg-blue-500",
-    tint: "border-blue-500/50 bg-blue-50/30 dark:bg-blue-900/10",
+    color: "bg-blue-500",
+    tint: "border-blue-500",
   },
   gilfoyle: {
     label: "Gilfoyle",
     initial: "G",
-    color: "bg-emerald-600 dark:bg-emerald-500",
-    tint: "border-emerald-500/50 bg-emerald-50/30 dark:bg-emerald-900/10",
+    color: "bg-emerald-500",
+    tint: "border-emerald-500",
   },
   dinesh: {
     label: "Dinesh",
     initial: "D",
-    color: "bg-orange-600 dark:bg-orange-500",
-    tint: "border-orange-500/50 bg-orange-50/30 dark:bg-orange-900/10",
+    color: "bg-orange-500",
+    tint: "border-orange-500",
   },
   unassigned: {
     label: "Unassigned",
     initial: "?",
-    color: "bg-slate-400 dark:bg-slate-500",
-    tint: "border-slate-300 dark:border-zinc-700",
+    color: "bg-slate-300",
+    tint: "border-slate-300",
   },
 };
 
