@@ -27,8 +27,8 @@ export default function Board({ project, tasks, setTasks, onTasksChange }: Board
   const [editingTask, setEditingTask] = useState<Task | null>(null);
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [assigneeFilter, setAssigneeFilter] = useState<'all' | TaskAssignee>('all');
-  const [priorityFilter, setPriorityFilter] = useState<'all' | TaskPriority>('all');
+  const [assigneeFilters, setAssigneeFilters] = useState<TaskAssignee[]>([]);
+  const [priorityFilters, setPriorityFilters] = useState<TaskPriority[]>([]);
   const [labelFilter, setLabelFilter] = useState<'all' | 'unlabeled' | string>('all');
 
   const availableLabels = useMemo(() => {
@@ -53,8 +53,8 @@ export default function Board({ project, tasks, setTasks, onTasksChange }: Board
         (task.description?.toLowerCase().includes(q) ?? false) ||
         (task.labels?.some((l) => l.toLowerCase().includes(q)) ?? false);
 
-      const matchesAssignee = assigneeFilter === 'all' || task.assignee === assigneeFilter;
-      const matchesPriority = priorityFilter === 'all' || task.priority === priorityFilter;
+      const matchesAssignee = assigneeFilters.length === 0 || assigneeFilters.includes(task.assignee);
+      const matchesPriority = priorityFilters.length === 0 || priorityFilters.includes(task.priority);
 
       const hasLabels = (task.labels?.length ?? 0) > 0;
       const matchesLabel =
@@ -82,7 +82,7 @@ export default function Board({ project, tasks, setTasks, onTasksChange }: Board
         tasks: columnTasks,
       };
     });
-  }, [tasks, searchQuery, assigneeFilter, priorityFilter, labelFilter]);
+  }, [tasks, searchQuery, assigneeFilters, priorityFilters, labelFilter]);
 
   // Listen for mobile header events
   useEffect(() => {
@@ -169,9 +169,21 @@ export default function Board({ project, tasks, setTasks, onTasksChange }: Board
   };
 
   const handleClearFilters = () => {
-    setAssigneeFilter('all');
-    setPriorityFilter('all');
+    setAssigneeFilters([]);
+    setPriorityFilters([]);
     setLabelFilter('all');
+  };
+
+  const toggleAssigneeFilter = (assignee: TaskAssignee) => {
+    setAssigneeFilters((prev) =>
+      prev.includes(assignee) ? prev.filter((a) => a !== assignee) : [...prev, assignee]
+    );
+  };
+
+  const togglePriorityFilter = (priority: TaskPriority) => {
+    setPriorityFilters((prev) =>
+      prev.includes(priority) ? prev.filter((p) => p !== priority) : [...prev, priority]
+    );
   };
 
   return (
@@ -211,9 +223,9 @@ export default function Board({ project, tasks, setTasks, onTasksChange }: Board
 
             <div className="flex items-center gap-1 bg-slate-50 dark:bg-zinc-800 rounded-lg p-1 mr-2">
               <button
-                onClick={() => setAssigneeFilter('all')}
+                onClick={() => setAssigneeFilters([])}
                 className={`h-7 w-7 rounded-full flex items-center justify-center text-[10px] font-bold transition-all border-2 ${
-                  assigneeFilter === 'all'
+                  assigneeFilters.length === 0
                     ? 'bg-zinc-900 text-white border-zinc-900 dark:bg-white dark:text-zinc-900 dark:border-white scale-110 shadow-sm'
                     : 'bg-white dark:bg-zinc-700 text-zinc-500 border-transparent hover:bg-zinc-100 dark:hover:bg-zinc-600'
                 }`}
@@ -224,11 +236,11 @@ export default function Board({ project, tasks, setTasks, onTasksChange }: Board
               {(Object.keys(ASSIGNEE_COLORS) as TaskAssignee[]).filter(a => a !== 'unassigned').map((assignee) => (
                 <button
                   key={assignee}
-                  onClick={() => setAssigneeFilter(assignee)}
+                  onClick={() => toggleAssigneeFilter(assignee)}
                   className={`h-7 w-7 rounded-full flex items-center justify-center text-[10px] text-white font-bold uppercase transition-all border-2 ${
                     ASSIGNEE_COLORS[assignee]
                   } ${
-                    assigneeFilter === assignee
+                    assigneeFilters.includes(assignee)
                       ? 'border-zinc-900 dark:border-white scale-110 shadow-sm z-10'
                       : 'border-transparent opacity-70 hover:opacity-100 hover:scale-105'
                   }`}
@@ -238,11 +250,11 @@ export default function Board({ project, tasks, setTasks, onTasksChange }: Board
                 </button>
               ))}
               <button
-                onClick={() => setAssigneeFilter('unassigned')}
+                onClick={() => toggleAssigneeFilter('unassigned')}
                 className={`h-7 w-7 rounded-full flex items-center justify-center text-[10px] text-white font-bold uppercase transition-all border-2 ${
                   ASSIGNEE_COLORS.unassigned
                 } ${
-                  assigneeFilter === 'unassigned'
+                  assigneeFilters.includes('unassigned')
                     ? 'border-zinc-900 dark:border-white scale-110 shadow-sm z-10'
                     : 'border-transparent opacity-70 hover:opacity-100 hover:scale-105'
                 }`}
@@ -252,18 +264,21 @@ export default function Board({ project, tasks, setTasks, onTasksChange }: Board
               </button>
             </div>
 
-            <div className="flex items-center bg-slate-50 dark:bg-zinc-800 rounded-lg p-1">
-              <select
-                value={priorityFilter}
-                onChange={(e) => setPriorityFilter(e.target.value as any)}
-                className="bg-transparent border-none text-xs font-medium focus:ring-0 cursor-pointer pr-8 py-1"
-                aria-label="Filter by priority"
-              >
-                <option value="all">All Priorities</option>
-                <option value="low">Low</option>
-                <option value="medium">Medium</option>
-                <option value="high">High</option>
-              </select>
+            <div className="flex items-center gap-1 bg-slate-50 dark:bg-zinc-800 rounded-lg p-1">
+              {(['low', 'medium', 'high'] as TaskPriority[]).map((p) => (
+                <button
+                  key={p}
+                  onClick={() => togglePriorityFilter(p)}
+                  className={`px-3 py-1 rounded-md text-[10px] font-bold uppercase transition-all border ${
+                    priorityFilters.includes(p)
+                      ? 'bg-primary text-primary-foreground border-primary scale-105'
+                      : 'bg-white dark:bg-zinc-700 text-zinc-500 border-transparent hover:bg-zinc-100 dark:hover:bg-zinc-600'
+                  }`}
+                  title={`Filter by ${p} priority`}
+                >
+                  {p}
+                </button>
+              ))}
             </div>
 
             <div className="flex items-center bg-slate-50 dark:bg-zinc-800 rounded-lg p-1">
@@ -283,7 +298,7 @@ export default function Board({ project, tasks, setTasks, onTasksChange }: Board
               </select>
             </div>
 
-            {(assigneeFilter !== 'all' || priorityFilter !== 'all' || labelFilter !== 'all') && (
+            {(assigneeFilters.length > 0 || priorityFilters.length > 0 || labelFilter !== 'all') && (
               <button
                 type="button"
                 onClick={handleClearFilters}
@@ -334,10 +349,10 @@ export default function Board({ project, tasks, setTasks, onTasksChange }: Board
       <BoardFiltersModal
         isOpen={isFiltersOpen}
         onClose={() => setIsFiltersOpen(false)}
-        assigneeFilter={assigneeFilter}
-        onAssigneeFilter={setAssigneeFilter}
-        priorityFilter={priorityFilter}
-        onPriorityFilter={setPriorityFilter}
+        assigneeFilters={assigneeFilters}
+        onAssigneeFilters={setAssigneeFilters}
+        priorityFilters={priorityFilters}
+        onPriorityFilters={setPriorityFilters}
         labelFilter={labelFilter}
         onLabelFilter={setLabelFilter}
         availableLabels={availableLabels}

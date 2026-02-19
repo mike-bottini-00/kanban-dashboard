@@ -297,28 +297,28 @@ export default function TaskModal({
               <User className="h-4 w-4" /> Assignee
             </label>
 
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+            <div className="grid grid-cols-2 gap-3">
               {ASSIGNEE_OPTIONS.map((opt) => (
                 <button
                   key={opt.value}
                   type="button"
                   onClick={() => setAssignee(opt.value)}
                   className={cn(
-                    'px-3 py-2 rounded-lg text-xs font-semibold border transition-colors flex items-center justify-center gap-2',
+                    'px-3 py-2.5 rounded-lg text-sm font-semibold border transition-all flex items-center gap-3 shadow-sm',
                     assignee === opt.value
-                      ? 'bg-primary text-primary-foreground border-primary'
-                      : 'bg-background hover:bg-muted border-input text-foreground'
+                      ? 'bg-primary text-primary-foreground border-primary ring-2 ring-primary/20'
+                      : 'bg-background hover:bg-muted border-input text-foreground hover:border-primary/50'
                   )}
                 >
                   <span
                     className={cn(
-                      'h-5 w-5 rounded-full flex items-center justify-center text-[10px] text-white font-bold',
+                      'h-6 w-6 rounded-full flex-shrink-0 flex items-center justify-center text-[11px] text-white font-bold',
                       ASSIGNEE_COLORS[opt.value]
                     )}
                   >
-                    {opt.value === 'unassigned' ? <User className="h-3 w-3" /> : opt.label.charAt(0)}
+                    {opt.value === 'unassigned' ? <User className="h-3.5 w-3.5" /> : opt.label.charAt(0)}
                   </span>
-                  <span className="truncate">{opt.label}</span>
+                  <span className="font-medium">{opt.label}</span>
                 </button>
               ))}
             </div>
