@@ -13,29 +13,58 @@ export const STATUS_CONFIG: Record<TaskStatus, { title: string; borderColor: str
   done: { title: 'Done', borderColor: 'border-green-200', dotColor: 'bg-green-500' },
 };
 
-export const ASSIGNEE_COLORS: Record<TaskAssignee, string> = {
-  walter: "bg-indigo-600 dark:bg-indigo-500",
-  mike: "bg-blue-600 dark:bg-blue-500",
-  gilfoyle: "bg-emerald-600 dark:bg-emerald-500",
-  dinesh: "bg-orange-600 dark:bg-orange-500",
-  unassigned: "bg-slate-400 dark:bg-slate-500",
+export const ASSIGNEE_CONFIG: Record<TaskAssignee, { label: string; initial: string; color: string; tint: string }> = {
+  walter: {
+    label: "Walter",
+    initial: "W",
+    color: "bg-indigo-600 dark:bg-indigo-500",
+    tint: "border-indigo-500/50 bg-indigo-50/30 dark:bg-indigo-900/10",
+  },
+  mike: {
+    label: "Mike",
+    initial: "M",
+    color: "bg-blue-600 dark:bg-blue-500",
+    tint: "border-blue-500/50 bg-blue-50/30 dark:bg-blue-900/10",
+  },
+  gilfoyle: {
+    label: "Gilfoyle",
+    initial: "G",
+    color: "bg-emerald-600 dark:bg-emerald-500",
+    tint: "border-emerald-500/50 bg-emerald-50/30 dark:bg-emerald-900/10",
+  },
+  dinesh: {
+    label: "Dinesh",
+    initial: "D",
+    color: "bg-orange-600 dark:bg-orange-500",
+    tint: "border-orange-500/50 bg-orange-50/30 dark:bg-orange-900/10",
+  },
+  unassigned: {
+    label: "Unassigned",
+    initial: "?",
+    color: "bg-slate-400 dark:bg-slate-500",
+    tint: "border-slate-300 dark:border-zinc-700",
+  },
 };
 
-export const ASSIGNEE_INITIALS: Record<TaskAssignee, string> = {
-  walter: "W",
-  mike: "M",
-  gilfoyle: "G",
-  dinesh: "D",
-  unassigned: "?",
-};
+export const ASSIGNEE_OPTIONS = (Object.keys(ASSIGNEE_CONFIG) as TaskAssignee[]).map(key => ({
+  value: key,
+  label: ASSIGNEE_CONFIG[key].label,
+}));
 
-export const ASSIGNEE_TINTS: Record<TaskAssignee, string> = {
-  walter: "border-indigo-500/50 bg-indigo-50/30 dark:bg-indigo-900/10",
-  mike: "border-blue-500/50 bg-blue-50/30 dark:bg-blue-900/10",
-  gilfoyle: "border-emerald-500/50 bg-emerald-50/30 dark:bg-emerald-900/10",
-  dinesh: "border-orange-500/50 bg-orange-50/30 dark:bg-orange-900/10",
-  unassigned: "border-slate-300 dark:border-zinc-700",
-};
+export const ASSIGNEE_COLORS: Record<TaskAssignee, string> = Object.entries(ASSIGNEE_CONFIG).reduce(
+  (acc, [key, val]) => ({ ...acc, [key]: val.color }),
+  {} as Record<TaskAssignee, string>
+);
+
+export const ASSIGNEE_INITIALS: Record<TaskAssignee, string> = Object.entries(ASSIGNEE_CONFIG).reduce(
+  (acc, [key, val]) => ({ ...acc, [key]: val.initial }),
+  {} as Record<TaskAssignee, string>
+);
+
+export const ASSIGNEE_TINTS: Record<TaskAssignee, string> = Object.entries(ASSIGNEE_CONFIG).reduce(
+  (acc, [key, val]) => ({ ...acc, [key]: val.tint }),
+  {} as Record<TaskAssignee, string>
+);
 
 const LABEL_PALETTE = [
   'bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800',

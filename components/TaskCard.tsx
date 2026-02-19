@@ -6,15 +6,7 @@ import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { User, Clock } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
-import { PRIORITY_CONFIG, ASSIGNEE_COLORS, ASSIGNEE_INITIALS, ASSIGNEE_TINTS, getLabelColor } from '@/lib/ui-config';
-
-const ASSIGNEE_LABELS: Record<Task['assignee'], string> = {
-  walter: 'Walter',
-  mike: 'Mike',
-  gilfoyle: 'Gilfoyle',
-  dinesh: 'Dinesh',
-  unassigned: 'Unassigned',
-};
+import { PRIORITY_CONFIG, ASSIGNEE_CONFIG, getLabelColor } from '@/lib/ui-config';
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -28,8 +20,7 @@ interface TaskCardProps {
 
 export default function TaskCard({ task, index, onClick }: TaskCardProps) {
   const priorityConfig = PRIORITY_CONFIG[task.priority] || PRIORITY_CONFIG.low;
-  const assigneeColor = ASSIGNEE_COLORS[task.assignee] || ASSIGNEE_COLORS.unassigned;
-  const assigneeTint = ASSIGNEE_TINTS[task.assignee] || ASSIGNEE_TINTS.unassigned;
+  const assigneeConfig = ASSIGNEE_CONFIG[task.assignee] || ASSIGNEE_CONFIG.unassigned;
 
   return (
     <Draggable draggableId={task.id} index={index}>
@@ -41,7 +32,7 @@ export default function TaskCard({ task, index, onClick }: TaskCardProps) {
           onClick={onClick}
           className={cn(
             "bg-white dark:bg-zinc-900 p-4 rounded-xl border-l-4 shadow-sm cursor-grab group",
-            assigneeTint,
+            assigneeConfig.tint,
             snapshot.isDragging ? "shadow-xl rotate-2 scale-[1.02] ring-2 ring-primary/20 z-50" : "transition-all duration-150"
           )}
         >
@@ -86,11 +77,11 @@ export default function TaskCard({ task, index, onClick }: TaskCardProps) {
               <div 
                 className={cn(
                   "h-7 w-7 rounded-full flex items-center justify-center text-[10px] text-white font-bold uppercase ring-2 ring-white dark:ring-zinc-900 shadow-sm transition-transform group-hover:scale-110",
-                  assigneeColor
+                  assigneeConfig.color
                 )}
-                title={`Assigned to ${ASSIGNEE_LABELS[task.assignee]}`}
+                title={`Assigned to ${assigneeConfig.label}`}
               >
-                {ASSIGNEE_INITIALS[task.assignee]}
+                {assigneeConfig.initial}
               </div>
             </div>
           </div>

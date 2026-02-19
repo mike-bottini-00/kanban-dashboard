@@ -1,5 +1,5 @@
 import { Project, Task, TaskStatus, TaskPriority, TaskAssignee } from '@/lib/types';
-import { ASSIGNEE_COLORS, ASSIGNEE_INITIALS } from '@/lib/ui-config';
+import { ASSIGNEE_CONFIG, ASSIGNEE_OPTIONS } from '@/lib/ui-config';
 import { DragDropContext, DropResult } from '@hello-pangea/dnd';
 import Column from './Column';
 import { useState, useEffect, useMemo, useCallback } from 'react';
@@ -187,6 +187,19 @@ export default function Board({ project, tasks, setTasks, onTasksChange }: Board
     );
   };
 
+  const handleTaskModalSuccess = (updatedTask?: Task) => {
+    if (updatedTask) {
+      setTasks((prev) => {
+        const exists = prev.some((t) => t.id === updatedTask.id);
+        if (exists) {
+          return prev.map((t) => (t.id === updatedTask.id ? updatedTask : t));
+        }
+        return [...prev, updatedTask];
+      });
+    }
+    onTasksChange();
+  };
+
   return (
     <div className="h-full flex flex-col bg-slate-50 dark:bg-zinc-950 w-full relative">
       {/* Board Header - Responsive (Hidden on mobile as page.tsx header takes over) */}
@@ -227,15 +240,12 @@ export default function Board({ project, tasks, setTasks, onTasksChange }: Board
                 label="Assignee"
                 selected={assigneeFilters}
                 onChange={(vals) => setAssigneeFilters(vals as TaskAssignee[])}
-                options={[
-                  ...(['walter', 'mike', 'gilfoyle', 'dinesh'] as TaskAssignee[]).map((a) => ({
-                    value: a,
-                    label: a,
-                    colorClass: ASSIGNEE_COLORS[a],
-                    initial: ASSIGNEE_INITIALS[a],
-                  })),
-                  { value: 'unassigned', label: 'Unassigned', colorClass: ASSIGNEE_COLORS.unassigned, initial: '?' },
-                ]}
+                options={ASSIGNEE_OPTIONS.map((opt) => ({
+                  value: opt.value,
+                  label: opt.label,
+                  colorClass: ASSIGNEE_CONFIG[opt.value].color,
+                  initial: ASSIGNEE_CONFIG[opt.value].initial,
+                }))}
               />
 
               <MultiSelect
@@ -313,7 +323,7 @@ export default function Board({ project, tasks, setTasks, onTasksChange }: Board
           project={project}
           task={editingTask}
           availableLabels={availableLabels}
-          onSuccess={onTasksChange}
+          onSuccess={handleTaskModalSuccess}
         />
       )}
 

@@ -3,7 +3,7 @@
 import { Project, Task, TaskPriority, TaskAssignee, TaskStatus, TaskComment } from '@/lib/types';
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { X, Flag, Trash2, Layout, Tag, MessageSquare, Send, User } from 'lucide-react';
-import { STATUS_CONFIG, PRIORITY_CONFIG, ASSIGNEE_COLORS, ASSIGNEE_INITIALS, getLabelColor } from '@/lib/ui-config';
+import { STATUS_CONFIG, PRIORITY_CONFIG, ASSIGNEE_CONFIG, ASSIGNEE_OPTIONS, getLabelColor } from '@/lib/ui-config';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { formatDistanceToNow } from 'date-fns';
@@ -18,16 +18,8 @@ interface TaskModalProps {
   project: Project;
   task?: Task | null;
   availableLabels?: string[];
-  onSuccess: () => void;
+  onSuccess: (updatedTask?: Task) => void;
 }
-
-const ASSIGNEE_OPTIONS: { value: TaskAssignee; label: string }[] = [
-  { value: 'unassigned', label: 'Unassigned' },
-  { value: 'walter', label: 'Walter' },
-  { value: 'mike', label: 'Mike' },
-  { value: 'gilfoyle', label: 'Gilfoyle' },
-  { value: 'dinesh', label: 'Dinesh' },
-];
 
 export default function TaskModal({
   isOpen,
@@ -192,7 +184,8 @@ export default function TaskModal({
 
       setLoading(false);
       if (res.ok) {
-        onSuccess();
+        const savedTask = await res.json();
+        onSuccess(savedTask);
         onClose();
       } else {
         console.error(await res.text());
@@ -308,29 +301,32 @@ export default function TaskModal({
             </label>
 
             <div className="grid grid-cols-2 gap-3">
-              {ASSIGNEE_OPTIONS.map((opt) => (
-                <button
-                  key={opt.value}
-                  type="button"
-                  onClick={() => setAssignee(opt.value)}
-                  className={cn(
-                    'px-3 py-2.5 rounded-lg text-sm font-semibold border transition-all flex items-center gap-3 shadow-sm',
-                    assignee === opt.value
-                      ? 'bg-primary text-primary-foreground border-primary ring-2 ring-primary/20'
-                      : 'bg-background hover:bg-muted border-input text-foreground hover:border-primary/50'
-                  )}
-                >
-                  <div
+              {ASSIGNEE_OPTIONS.map((opt) => {
+                const config = ASSIGNEE_CONFIG[opt.value];
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setAssignee(opt.value)}
                     className={cn(
-                      'h-6 w-6 rounded-full flex-shrink-0 flex items-center justify-center text-[10px] text-white font-bold uppercase shadow-sm',
-                      ASSIGNEE_COLORS[opt.value]
+                      'px-3 py-2.5 rounded-lg text-sm font-semibold border transition-all flex items-center gap-3 shadow-sm',
+                      assignee === opt.value
+                        ? 'bg-primary text-primary-foreground border-primary ring-2 ring-primary/20'
+                        : 'bg-background hover:bg-muted border-input text-foreground hover:border-primary/50'
                     )}
                   >
-                    {ASSIGNEE_INITIALS[opt.value]}
-                  </div>
-                  <span className="font-medium">{opt.label}</span>
-                </button>
-              ))}
+                    <div
+                      className={cn(
+                        'h-6 w-6 rounded-full flex-shrink-0 flex items-center justify-center text-[10px] text-white font-bold uppercase shadow-sm',
+                        config.color
+                      )}
+                    >
+                      {config.initial}
+                    </div>
+                    <span className="font-medium">{opt.label}</span>
+                  </button>
+                );
+              })}
             </div>
 
             <div className="sr-only">
@@ -445,30 +441,33 @@ export default function TaskModal({
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {comments.map((c) => (
-                      <div key={c.id} className="group flex gap-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                        <div 
-                          className={cn(
-                            "h-8 w-8 rounded-full flex-shrink-0 flex items-center justify-center text-[10px] text-white font-bold uppercase ring-2 ring-background shadow-sm",
-                            ASSIGNEE_COLORS[c.author as TaskAssignee] || "bg-slate-400"
-                          )}
-                          title={c.author}
-                        >
-                          {ASSIGNEE_INITIALS[c.author as TaskAssignee] || c.author.charAt(0).toUpperCase()}
-                        </div>
-                        <div className="flex-1 space-y-1">
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs font-semibold text-foreground capitalize">{c.author}</span>
-                            <span className="text-[10px] text-muted-foreground">
-                              {formatDistanceToNow(new Date(c.created_at), { addSuffix: true })}
-                            </span>
+                    {comments.map((c) => {
+                      const authorConfig = ASSIGNEE_CONFIG[c.author as TaskAssignee] || ASSIGNEE_CONFIG.unassigned;
+                      return (
+                        <div key={c.id} className="group flex gap-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                          <div 
+                            className={cn(
+                              "h-8 w-8 rounded-full flex-shrink-0 flex items-center justify-center text-[10px] text-white font-bold uppercase ring-2 ring-background shadow-sm",
+                              authorConfig.color
+                            )}
+                            title={c.author}
+                          >
+                            {authorConfig.initial}
                           </div>
-                          <div className="text-sm text-foreground/90 bg-muted/30 p-3 rounded-tr-xl rounded-br-xl rounded-bl-xl border border-border/40 hover:bg-muted/50 transition-colors">
-                            <p className="whitespace-pre-wrap leading-relaxed">{c.content}</p>
+                          <div className="flex-1 space-y-1">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-semibold text-foreground capitalize">{c.author}</span>
+                              <span className="text-[10px] text-muted-foreground">
+                                {formatDistanceToNow(new Date(c.created_at), { addSuffix: true })}
+                              </span>
+                            </div>
+                            <div className="text-sm text-foreground/90 bg-muted/30 p-3 rounded-tr-xl rounded-br-xl rounded-bl-xl border border-border/40 hover:bg-muted/50 transition-colors">
+                              <p className="whitespace-pre-wrap leading-relaxed">{c.content}</p>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                     <div ref={commentsEndRef} />
                   </div>
                 )}

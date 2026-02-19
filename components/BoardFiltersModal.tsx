@@ -2,7 +2,7 @@
 
 import { TaskPriority, TaskAssignee } from '@/lib/types';
 import { Filter, X, Check } from 'lucide-react';
-import { ASSIGNEE_COLORS, ASSIGNEE_INITIALS, PRIORITY_CONFIG } from '@/lib/ui-config';
+import { ASSIGNEE_CONFIG, ASSIGNEE_OPTIONS, PRIORITY_CONFIG } from '@/lib/ui-config';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -27,7 +27,6 @@ interface BoardFiltersModalProps {
   onClear: () => void;
 }
 
-const ASSIGNEES: TaskAssignee[] = ['walter', 'mike', 'gilfoyle', 'dinesh', 'unassigned'];
 const PRIORITIES: TaskPriority[] = ['low', 'medium', 'high'];
 
 export default function BoardFiltersModal({
@@ -98,31 +97,35 @@ export default function BoardFiltersModal({
               )}
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {ASSIGNEES.map((a) => (
-                <button
-                  key={a}
-                  onClick={() => toggleAssignee(a)}
-                  className={cn(
-                    "flex items-center gap-3 px-3 py-2.5 rounded-xl border text-sm font-medium transition-all min-h-[56px]",
-                    assigneeFilters.includes(a)
-                      ? "bg-primary/5 border-primary text-primary ring-2 ring-primary/20 shadow-sm"
-                      : "bg-background border-border text-foreground hover:border-primary/30"
-                  )}
-                >
-                  <div className={cn(
-                    "h-9 w-9 rounded-full flex items-center justify-center text-[13px] font-bold text-white uppercase shrink-0 shadow-sm",
-                    ASSIGNEE_COLORS[a]
-                  )}>
-                    {ASSIGNEE_INITIALS[a]}
-                  </div>
-                  <span className="capitalize flex-1 text-left">{a}</span>
-                  {assigneeFilters.includes(a) && (
-                    <div className="h-5 w-5 rounded-full bg-primary flex items-center justify-center shrink-0">
-                      <Check className="h-3.5 w-3.5 text-primary-foreground" />
+              {ASSIGNEE_OPTIONS.map((opt) => {
+                const a = opt.value;
+                const config = ASSIGNEE_CONFIG[a];
+                return (
+                  <button
+                    key={a}
+                    onClick={() => toggleAssignee(a)}
+                    className={cn(
+                      "flex items-center gap-3 px-3 py-2.5 rounded-xl border text-sm font-medium transition-all min-h-[56px]",
+                      assigneeFilters.includes(a)
+                        ? "bg-primary/5 border-primary text-primary ring-2 ring-primary/20 shadow-sm"
+                        : "bg-background border-border text-foreground hover:border-primary/30"
+                    )}
+                  >
+                    <div className={cn(
+                      "h-9 w-9 rounded-full flex items-center justify-center text-[13px] font-bold text-white uppercase shrink-0 shadow-sm",
+                      config.color
+                    )}>
+                      {config.initial}
                     </div>
-                  )}
-                </button>
-              ))}
+                    <span className="capitalize flex-1 text-left">{opt.label}</span>
+                    {assigneeFilters.includes(a) && (
+                      <div className="h-5 w-5 rounded-full bg-primary flex items-center justify-center shrink-0">
+                        <Check className="h-3.5 w-3.5 text-primary-foreground" />
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
