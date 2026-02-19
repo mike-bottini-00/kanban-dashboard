@@ -108,7 +108,6 @@ export default function MultiSelect({
                   {isSelected && <Check className="h-4 w-4 shrink-0" />}
                 </button>
               );
-              );
             })}
           </div>
           {selected.length > 0 && (
