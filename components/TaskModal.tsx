@@ -18,6 +18,8 @@ interface TaskModalProps {
   project: Project;
   task?: Task | null;
   availableLabels?: string[];
+  currentUser?: TaskAssignee;
+  onUserChange?: (user: TaskAssignee) => void;
   onSuccess: (updatedTask?: Task) => void;
 }
 
@@ -27,6 +29,8 @@ export default function TaskModal({
   project,
   task,
   availableLabels = [],
+  currentUser = 'walter',
+  onUserChange,
   onSuccess,
 }: TaskModalProps) {
   const [title, setTitle] = useState('');
@@ -40,7 +44,7 @@ export default function TaskModal({
 
   const [comments, setComments] = useState<TaskComment[]>([]);
   const [newComment, setNewComment] = useState('');
-  const [currentUser, setCurrentUser] = useState<TaskAssignee>('walter'); // Mock auth
+  // currentUser comes from props
   const [loading, setLoading] = useState(false);
   const [loadingComments, setLoadingComments] = useState(false);
   const [addingComment, setAddingComment] = useState(false);
@@ -167,6 +171,7 @@ export default function TaskModal({
       status,
       labels,
       updated_at: new Date().toISOString(),
+      changed_by: currentUser,
     };
 
     try {
@@ -428,7 +433,7 @@ export default function TaskModal({
                   <span className="text-muted-foreground">Posting as:</span>
                   <select 
                     value={currentUser} 
-                    onChange={(e) => setCurrentUser(e.target.value as TaskAssignee)}
+                    onChange={(e) => onUserChange?.(e.target.value as TaskAssignee)}
                     className="bg-transparent border-none text-xs font-medium focus:ring-0 cursor-pointer pr-4 py-0"
                   >
                     {(Object.keys(ASSIGNEE_CONFIG) as TaskAssignee[])

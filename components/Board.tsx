@@ -3,7 +3,7 @@ import { ASSIGNEE_CONFIG, ASSIGNEE_OPTIONS } from '@/lib/ui-config';
 import { DragDropContext, DropResult } from '@hello-pangea/dnd';
 import Column from './Column';
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { Plus, LayoutGrid, Search, X, Filter } from 'lucide-react';
+import { Plus, LayoutGrid, Search, X, Filter, User } from 'lucide-react';
 import TaskModal from './TaskModal';
 import BoardFiltersModal from './BoardFiltersModal';
 import MultiSelect, { MultiSelectOption } from './MultiSelect';
@@ -31,6 +31,7 @@ export default function Board({ project, tasks, setTasks, onTasksChange }: Board
   const [assigneeFilters, setAssigneeFilters] = useState<TaskAssignee[]>([]);
   const [priorityFilters, setPriorityFilters] = useState<TaskPriority[]>([]);
   const [labelFilter, setLabelFilter] = useState<'all' | 'unlabeled' | string>('all');
+  const [currentUser, setCurrentUser] = useState<TaskAssignee>('walter'); // Default user for "Posting as"
 
   const availableLabels = useMemo(() => {
     const s = new Set<string>();
@@ -145,7 +146,7 @@ export default function Board({ project, tasks, setTasks, onTasksChange }: Board
         const res = await fetch('/api/tasks', {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id: draggableId, status: newStatus, position: newPosition }),
+          body: JSON.stringify({ id: draggableId, status: newStatus, position: newPosition, changed_by: currentUser }),
         });
         if (!res.ok) {
           console.error('Failed to move task');
@@ -289,6 +290,27 @@ export default function Board({ project, tasks, setTasks, onTasksChange }: Board
               </button>
             )}
 
+            <div className="flex items-center gap-2 pl-2 border-l border-slate-200 dark:border-zinc-800">
+              <span className="text-xs text-muted-foreground hidden lg:inline">Posting as:</span>
+              <div className="flex items-center bg-slate-50 dark:bg-zinc-800 rounded-lg p-1.5 h-9 border border-transparent hover:bg-slate-100 dark:hover:bg-zinc-700 transition-colors">
+                <User className="h-4 w-4 text-muted-foreground ml-1" />
+                <select
+                  value={currentUser}
+                  onChange={(e) => setCurrentUser(e.target.value as TaskAssignee)}
+                  className="bg-transparent border-none text-sm font-medium focus:ring-0 cursor-pointer pr-8 py-0 max-w-[140px]"
+                  aria-label="Select current user"
+                >
+                  {(Object.keys(ASSIGNEE_CONFIG) as TaskAssignee[])
+                    .filter((a) => a !== 'unassigned')
+                    .map((a) => (
+                      <option key={a} value={a}>
+                        {ASSIGNEE_CONFIG[a].emoji} {ASSIGNEE_CONFIG[a].label}
+                      </option>
+                    ))}
+                </select>
+              </div>
+            </div>
+
             <button
               onClick={handleAddTask}
               className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium shadow-sm transition-all hover:shadow-md active:scale-95 text-sm whitespace-nowrap ml-2"
@@ -323,6 +345,8 @@ export default function Board({ project, tasks, setTasks, onTasksChange }: Board
           project={project}
           task={editingTask}
           availableLabels={availableLabels}
+          currentUser={currentUser}
+          onUserChange={setCurrentUser}
           onSuccess={handleTaskModalSuccess}
         />
       )}
