@@ -253,6 +253,23 @@ export default function Sidebar({ projects, selectedProject, onSelectProject, on
                 </button>
               </div>
 
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium">Notify Walter on Telegram</p>
+                  <p className="text-sm text-muted-foreground">Always ON for now (toggle coming soon)</p>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={true}
+                  disabled
+                  className="relative inline-flex h-6 w-11 cursor-not-allowed rounded-full bg-primary/60 opacity-80"
+                  title="Coming soon"
+                >
+                  <span className="inline-block h-5 w-5 translate-x-5 rounded-full bg-white shadow-sm transition-transform" />
+                </button>
+              </div>
+
               {selectedProject && (
                 <div className="pt-6 border-t border-border">
                   <p className="font-medium text-destructive mb-2">Danger Zone</p>
