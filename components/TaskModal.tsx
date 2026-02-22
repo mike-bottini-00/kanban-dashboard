@@ -323,7 +323,7 @@ export default function TaskModal({
                     >
                       {config.initial}
                     </div>
-                    <span className="font-medium">{opt.label}</span>
+                    <span className="font-medium">{config.emoji} {opt.label}</span>
                   </button>
                 );
               })}
