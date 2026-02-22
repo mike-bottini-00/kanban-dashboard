@@ -3,7 +3,7 @@ import { TaskPriority, TaskStatus, TaskAssignee } from './types';
 export const PRIORITY_CONFIG: Record<TaskPriority, { label: string; className: string }> = {
   low: { label: 'Low', className: 'bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-700/10' },
   medium: { label: 'Medium', className: 'bg-yellow-50 text-yellow-800 ring-1 ring-inset ring-yellow-600/20' },
-  high: { label: 'High', className: 'bg-red-50 text-red-700 ring-1 ring-inset ring-red-600/10' },
+  high: { label: 'High', className: 'bg-violet-50 text-violet-700 ring-1 ring-inset ring-violet-700/10' },
 };
 
 export const STATUS_CONFIG: Record<TaskStatus, { title: string; borderColor: string; dotColor: string }> = {
