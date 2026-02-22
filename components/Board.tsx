@@ -142,19 +142,34 @@ export default function Board({ project, tasks, setTasks, onTasksChange }: Board
       const destCol = columnsData.find((c) => c.id === newStatus);
       if (!destCol) return;
 
-      // Filter out the dragged item if it's a same-column move
-      const destTasks = destCol.tasks.filter((t) => t.id !== draggableId);
+      const isSameColumn = destination.droppableId === source.droppableId;
 
-      // Calculate position based on destination index
-      let newPosition: number;
-      if (destTasks.length === 0) {
-        newPosition = 1000;
-      } else if (destination.index === 0) {
-        newPosition = destTasks[0].position / 2;
-      } else if (destination.index >= destTasks.length) {
-        newPosition = destTasks[destTasks.length - 1].position + 1000;
+      // Compute neighbours around the drop position (avoids off-by-one when moving down)
+      let prevTask: Task | undefined;
+      let nextTask: Task | undefined;
+
+      if (isSameColumn) {
+        const reordered = Array.from(destCol.tasks);
+        const [removed] = reordered.splice(source.index, 1);
+        reordered.splice(destination.index, 0, removed);
+
+        prevTask = reordered[destination.index - 1];
+        nextTask = reordered[destination.index + 1];
       } else {
-        newPosition = (destTasks[destination.index - 1].position + destTasks[destination.index].position) / 2;
+        prevTask = destCol.tasks[destination.index - 1];
+        nextTask = destCol.tasks[destination.index];
+      }
+
+      // Calculate position from neighbours
+      let newPosition: number;
+      if (!prevTask && !nextTask) {
+        newPosition = 1000;
+      } else if (!prevTask) {
+        newPosition = nextTask!.position / 2;
+      } else if (!nextTask) {
+        newPosition = prevTask.position + 1000;
+      } else {
+        newPosition = (prevTask.position + nextTask.position) / 2;
       }
 
       // Optimistic update — using current array to update state immediately
@@ -179,7 +194,7 @@ export default function Board({ project, tasks, setTasks, onTasksChange }: Board
         onTasksChange();
       }
     },
-    [tasks, columnsData, setTasks, onTasksChange]
+    [tasks, columnsData, sortBy, currentUser, setTasks, onTasksChange]
   );
 
   const handleAddTask = () => {
