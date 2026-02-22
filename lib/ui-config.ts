@@ -13,36 +13,41 @@ export const STATUS_CONFIG: Record<TaskStatus, { title: string; borderColor: str
   done: { title: 'Done', borderColor: 'border-green-200', dotColor: 'bg-green-500' },
 };
 
-export const ASSIGNEE_CONFIG: Record<TaskAssignee, { label: string; initial: string; color: string; tint: string }> = {
+export const ASSIGNEE_CONFIG: Record<TaskAssignee, { label: string; initial: string; color: string; tint: string; emoji: string }> = {
   walter: {
     label: "Walter",
     initial: "W",
     color: "bg-indigo-500",
     tint: "border-indigo-500",
+    emoji: "👤",
   },
   mike: {
     label: "Mike",
     initial: "M",
     color: "bg-blue-500",
     tint: "border-blue-500",
+    emoji: "🤖",
   },
   gilfoyle: {
     label: "Gilfoyle",
     initial: "G",
     color: "bg-emerald-500",
     tint: "border-emerald-500",
+    emoji: "🔧",
   },
   dinesh: {
     label: "Dinesh",
     initial: "D",
     color: "bg-orange-500",
     tint: "border-orange-500",
+    emoji: "💻",
   },
   unassigned: {
     label: "Unassigned",
     initial: "?",
     color: "bg-slate-300",
     tint: "border-slate-300",
+    emoji: "❓",
   },
 };
 

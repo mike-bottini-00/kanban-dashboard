@@ -74,6 +74,9 @@ export default function TaskCard({ task, index, onClick }: TaskCardProps) {
             </div>
 
             <div className="flex items-center gap-2">
+              <span className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400">
+                {assigneeConfig.emoji} {assigneeConfig.label}
+              </span>
               <div 
                 className={cn(
                   "h-7 w-7 rounded-full flex items-center justify-center text-[10px] text-white font-bold uppercase ring-2 ring-white dark:ring-zinc-900 shadow-sm transition-transform group-hover:scale-110",
