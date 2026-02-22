@@ -423,10 +423,13 @@ export default function TaskModal({
                     onChange={(e) => setCurrentUser(e.target.value as TaskAssignee)}
                     className="bg-transparent border-none text-xs font-medium focus:ring-0 cursor-pointer pr-4 py-0"
                   >
-                    <option value="walter">Walter</option>
-                    <option value="mike">Mike</option>
-                    <option value="gilfoyle">Gilfoyle</option>
-                    <option value="dinesh">Dinesh</option>
+                    {(Object.keys(ASSIGNEE_CONFIG) as TaskAssignee[])
+                      .filter((a) => a !== 'unassigned')
+                      .map((a) => (
+                        <option key={a} value={a}>
+                          {ASSIGNEE_CONFIG[a].emoji} {ASSIGNEE_CONFIG[a].label}
+                        </option>
+                      ))}
                   </select>
                 </div>
               </div>
@@ -450,13 +453,15 @@ export default function TaskModal({
                               "h-8 w-8 rounded-full flex-shrink-0 flex items-center justify-center text-[10px] text-white font-bold uppercase ring-2 ring-background shadow-sm",
                               authorConfig.color
                             )}
-                            title={c.author}
+                            title={`${authorConfig.emoji} ${authorConfig.label}`}
                           >
                             {authorConfig.initial}
                           </div>
                           <div className="flex-1 space-y-1">
                             <div className="flex items-center justify-between">
-                              <span className="text-xs font-semibold text-foreground capitalize">{c.author}</span>
+                              <span className="text-xs font-semibold text-foreground">
+                                {authorConfig.emoji} {authorConfig.label}
+                              </span>
                               <span className="text-[10px] text-muted-foreground">
                                 {formatDistanceToNow(new Date(c.created_at), { addSuffix: true })}
                               </span>
@@ -491,7 +496,7 @@ export default function TaskModal({
                       handleAddComment();
                     }
                   }}
-                  placeholder={`Comment as ${currentUser}...`}
+                  placeholder={`Comment as ${ASSIGNEE_CONFIG[currentUser].emoji} ${ASSIGNEE_CONFIG[currentUser].label}...`}
                   className="flex-1 px-2 py-1.5 bg-transparent border-none text-sm focus:ring-0 min-h-[40px] max-h-[120px] resize-y placeholder:text-muted-foreground/70"
                   disabled={addingComment}
                 />
