@@ -77,7 +77,7 @@ export async function POST(req: NextRequest) {
 
 export async function PATCH(req: NextRequest) {
   try {
-    const { id, labels, ...updates } = await req.json();
+    const { id, labels, changed_by, ...updates } = await req.json();
 
     // Fetch old task to compare changes
     const { data: oldTask } = await supabaseAdmin
@@ -85,6 +85,12 @@ export async function PATCH(req: NextRequest) {
       .select('*')
       .eq('id', id)
       .single();
+
+    const normalizedChangedBy = typeof changed_by === 'string' ? changed_by.trim().toLowerCase() : null;
+    const allowedChangedBy = new Set(['walter', 'mike', 'gilfoyle', 'dinesh']);
+    const statusChangeAuthor = normalizedChangedBy && allowedChangedBy.has(normalizedChangedBy)
+      ? normalizedChangedBy
+      : (oldTask?.assignee ?? 'unassigned');
 
     // Prepare comments/activity log
     const currentMetadata = oldTask?.metadata ?? {};
@@ -97,7 +103,7 @@ export async function PATCH(req: NextRequest) {
             newComments.push({
                 id: crypto.randomUUID(),
                 task_id: id,
-                author: 'unassigned', 
+                author: statusChangeAuthor,
                 content: `Changed status to ${updates.status}`,
                 created_at: now
             });
