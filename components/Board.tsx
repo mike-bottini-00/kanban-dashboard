@@ -3,7 +3,7 @@ import { ASSIGNEE_CONFIG, ASSIGNEE_OPTIONS } from '@/lib/ui-config';
 import { DragDropContext, DropResult } from '@hello-pangea/dnd';
 import Column from './Column';
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { Plus, LayoutGrid, Search, X, Filter, User } from 'lucide-react';
+import { Plus, LayoutGrid, Search, X, Filter, User, ArrowDownWideNarrow } from 'lucide-react';
 import TaskModal from './TaskModal';
 import BoardFiltersModal from './BoardFiltersModal';
 import MultiSelect, { MultiSelectOption } from './MultiSelect';
@@ -31,6 +31,7 @@ export default function Board({ project, tasks, setTasks, onTasksChange }: Board
   const [assigneeFilters, setAssigneeFilters] = useState<TaskAssignee[]>([]);
   const [priorityFilters, setPriorityFilters] = useState<TaskPriority[]>([]);
   const [labelFilter, setLabelFilter] = useState<'all' | 'unlabeled' | string>('all');
+  const [sortBy, setSortBy] = useState<'manual' | 'updated_desc' | 'updated_asc' | 'priority_desc'>('manual');
   const [currentUser, setCurrentUser] = useState<TaskAssignee>('walter'); // Default user for "Posting as"
 
   const availableLabels = useMemo(() => {
@@ -71,8 +72,24 @@ export default function Board({ project, tasks, setTasks, onTasksChange }: Board
       const columnTasks = filteredTasks
         .filter((t) => t.status === col.id)
         .sort((a, b) => {
-          if (a.position !== b.position) return a.position - b.position;
-          return a.id.localeCompare(b.id);
+          if (sortBy === 'manual') {
+            if (a.position !== b.position) return a.position - b.position;
+            return a.id.localeCompare(b.id);
+          }
+          if (sortBy === 'updated_desc') {
+            return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+          }
+          if (sortBy === 'updated_asc') {
+            return new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime();
+          }
+          if (sortBy === 'priority_desc') {
+            const weights = { high: 3, medium: 2, low: 1 };
+            const pa = weights[a.priority] || 0;
+            const pb = weights[b.priority] || 0;
+            if (pa !== pb) return pb - pa;
+            return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+          }
+          return 0;
         })
         .map((task, index) => ({
           ...task,
@@ -84,7 +101,7 @@ export default function Board({ project, tasks, setTasks, onTasksChange }: Board
         tasks: columnTasks,
       };
     });
-  }, [tasks, searchQuery, assigneeFilters, priorityFilters, labelFilter]);
+  }, [tasks, searchQuery, assigneeFilters, priorityFilters, labelFilter, sortBy]);
 
   // Listen for mobile header events
   useEffect(() => {
@@ -115,6 +132,11 @@ export default function Board({ project, tasks, setTasks, onTasksChange }: Board
       if (!task) return;
 
       const newStatus = destination.droppableId as TaskStatus;
+
+      // Reset sort to manual on drag
+      if (sortBy !== 'manual') {
+        setSortBy('manual');
+      }
 
       // Use the memoized, correctly sorted column tasks for destination
       const destCol = columnsData.find((c) => c.id === newStatus);
@@ -259,6 +281,21 @@ export default function Board({ project, tasks, setTasks, onTasksChange }: Board
                   { value: 'high', label: 'High' },
                 ]}
               />
+
+              <div className="flex items-center bg-slate-50 dark:bg-zinc-800 rounded-lg p-1.5 h-9 border border-transparent hover:bg-slate-100 dark:hover:bg-zinc-700 transition-colors">
+                <ArrowDownWideNarrow className="h-4 w-4 text-muted-foreground ml-1" />
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as any)}
+                  className="bg-transparent border-none text-sm font-medium focus:ring-0 cursor-pointer pr-8 py-0 max-w-[140px]"
+                  aria-label="Sort tasks"
+                >
+                  <option value="manual">Manual</option>
+                  <option value="updated_desc">Newest</option>
+                  <option value="updated_asc">Oldest</option>
+                  <option value="priority_desc">Priority</option>
+                </select>
+              </div>
 
               <div className="flex items-center bg-slate-50 dark:bg-zinc-800 rounded-lg p-1.5 h-9 border border-transparent hover:bg-slate-100 dark:hover:bg-zinc-700 transition-colors">
                 <Filter className="h-4 w-4 text-muted-foreground ml-1" />
