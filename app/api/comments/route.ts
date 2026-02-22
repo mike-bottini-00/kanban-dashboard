@@ -18,6 +18,22 @@ function getMetadataComments(meta: any) {
   return Array.isArray(comments) ? comments : [];
 }
 
+function isWalterUser(value: string | null | undefined) {
+  return (value ?? '').trim().toLowerCase() === 'walter';
+}
+
+async function notifyWalterOnExternalComment(task: { title?: string } | null | undefined, taskId: string, author: string) {
+  if (isWalterUser(author)) return;
+
+  await notificationService.createNotification({
+    userId: 'walter',
+    type: 'new_comment',
+    title: 'New Comment',
+    message: `${author} commented on "${task?.title ?? 'a task'}"`,
+    taskId,
+  });
+}
+
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const taskId = searchParams.get('taskId');
@@ -110,7 +126,7 @@ export async function POST(req: NextRequest) {
 
         if (updateError) throw updateError;
 
-        // Notify if needed
+        // Notify assignee if needed
         if (task.assignee && task.assignee !== 'unassigned' && task.assignee !== author) {
           await notificationService.createNotification({
             userId: task.assignee,
@@ -119,6 +135,12 @@ export async function POST(req: NextRequest) {
             message: `${author} commented on "${task.title}"`,
             taskId: task_id,
           });
+        }
+
+        // Walter should receive comment activity notifications from non-Walter authors.
+        // Avoid duplicate sends when Walter is already the assignee notification target.
+        if (!isWalterUser(task.assignee)) {
+          await notifyWalterOnExternalComment(task, task_id, author);
         }
 
         return NextResponse.json(comment);
@@ -144,6 +166,12 @@ export async function POST(req: NextRequest) {
           taskId: task_id,
         });
       }
+
+      if (!isWalterUser(task.assignee)) {
+        await notifyWalterOnExternalComment(task, task_id, author);
+      }
+    } else {
+      await notifyWalterOnExternalComment(null, task_id, author);
     }
 
     return NextResponse.json(newComment);

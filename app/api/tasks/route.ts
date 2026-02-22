@@ -158,7 +158,18 @@ export async function PATCH(req: NextRequest) {
         });
       }
 
-      // 2. Status change to 'done'
+      // 2. Status change to 'review' => notify Walter when update is performed by someone else
+      if (updates.status === 'review' && oldTask.status !== 'review' && statusChangeAuthor !== 'walter') {
+        await notificationService.createNotification({
+          userId: 'walter',
+          type: 'status_change',
+          title: 'Task moved to Review',
+          message: `${statusChangeAuthor} moved "${data.title}" to Review`,
+          taskId: data.id,
+        });
+      }
+
+      // 3. Status change to 'done'
       if (updates.status === 'done' && oldTask.status !== 'done' && data.assignee !== 'unassigned') {
          // Notify the assignee (or maybe the reporter, but we don't have reporter field yet)
          // For now, let's just notify that it's done if it was assigned
