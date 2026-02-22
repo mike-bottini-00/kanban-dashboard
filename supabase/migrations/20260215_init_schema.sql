@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS tasks (
 
     title TEXT NOT NULL,
     description TEXT,
-    status TEXT NOT NULL DEFAULT 'todo' CHECK (status IN ('todo', 'in_progress', 'review', 'done')),
+    status TEXT NOT NULL DEFAULT 'todo' CHECK (status IN ('todo', 'in_progress', 'review', 'done', 'archived')),
     priority TEXT NOT NULL DEFAULT 'medium' CHECK (priority IN ('low', 'medium', 'high')),
     assignee TEXT NOT NULL DEFAULT 'unassigned' CHECK (assignee IN ('walter', 'mike', 'gilfoyle', 'dinesh', 'unassigned')),
     position DOUBLE PRECISION NOT NULL DEFAULT 1000,
