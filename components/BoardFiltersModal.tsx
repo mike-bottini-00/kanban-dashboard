@@ -10,6 +10,8 @@ function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+type SortOption = 'manual' | 'updated_desc' | 'updated_asc' | 'priority_desc';
+
 interface BoardFiltersModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -25,9 +27,19 @@ interface BoardFiltersModalProps {
 
   availableLabels: string[];
   onClear: () => void;
+
+  sortBy?: SortOption;
+  onSortBy?: (value: SortOption) => void;
 }
 
 const PRIORITIES: TaskPriority[] = ['low', 'medium', 'high'];
+
+const SORT_OPTIONS: { value: SortOption; label: string }[] = [
+  { value: 'manual', label: 'Manual' },
+  { value: 'updated_desc', label: 'Newest first' },
+  { value: 'updated_asc', label: 'Oldest first' },
+  { value: 'priority_desc', label: 'Priority (High → Low)' },
+];
 
 export default function BoardFiltersModal({
   isOpen,
@@ -40,6 +52,8 @@ export default function BoardFiltersModal({
   onLabelFilter,
   availableLabels,
   onClear,
+  sortBy = 'manual',
+  onSortBy,
 }: BoardFiltersModalProps) {
   if (!isOpen) return null;
 
@@ -181,6 +195,29 @@ export default function BoardFiltersModal({
               </div>
             </div>
           </div>
+
+          {onSortBy && (
+            <div className="space-y-3">
+              <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Sort</label>
+              <div className="flex flex-wrap gap-2">
+                {SORT_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.value}
+                    onClick={() => onSortBy(opt.value)}
+                    className={cn(
+                      "flex items-center gap-2 px-4 py-2.5 rounded-full border text-sm font-medium transition-all justify-center",
+                      sortBy === opt.value
+                        ? "bg-primary text-primary-foreground border-primary shadow-sm scale-105 ring-2 ring-primary/20"
+                        : "bg-background border-border text-foreground hover:border-primary/30"
+                    )}
+                  >
+                    {opt.label}
+                    {sortBy === opt.value && <Check className="h-3.5 w-3.5" />}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="p-4 border-t border-border bg-muted/30 flex items-center justify-between gap-3">

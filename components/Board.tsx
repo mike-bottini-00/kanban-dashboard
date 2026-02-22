@@ -341,7 +341,7 @@ export default function Board({ project, tasks, setTasks, onTasksChange }: Board
                     .filter((a) => a !== 'unassigned')
                     .map((a) => (
                       <option key={a} value={a}>
-                        {ASSIGNEE_CONFIG[a].emoji} {ASSIGNEE_CONFIG[a].label}
+                        {ASSIGNEE_CONFIG[a].label}
                       </option>
                     ))}
                 </select>
@@ -399,6 +399,8 @@ export default function Board({ project, tasks, setTasks, onTasksChange }: Board
         onLabelFilter={setLabelFilter}
         availableLabels={availableLabels}
         onClear={handleClearFilters}
+        sortBy={sortBy}
+        onSortBy={setSortBy}
       />
     </div>
   );

@@ -336,7 +336,7 @@ export default function TaskModal({
                     >
                       {config.initial}
                     </div>
-                    <span className="font-medium">{config.emoji} {opt.label}</span>
+                    <span className="font-medium">{opt.label}</span>
                   </button>
                 );
               })}
@@ -440,7 +440,7 @@ export default function TaskModal({
                       .filter((a) => a !== 'unassigned')
                       .map((a) => (
                         <option key={a} value={a}>
-                          {ASSIGNEE_CONFIG[a].emoji} {ASSIGNEE_CONFIG[a].label}
+                          {ASSIGNEE_CONFIG[a].label}
                         </option>
                       ))}
                   </select>
@@ -466,14 +466,14 @@ export default function TaskModal({
                               "h-8 w-8 rounded-full flex-shrink-0 flex items-center justify-center text-[10px] text-white font-bold uppercase ring-2 ring-background shadow-sm",
                               authorConfig.color
                             )}
-                            title={`${authorConfig.emoji} ${authorConfig.label}`}
+                            title={authorConfig.label}
                           >
                             {authorConfig.initial}
                           </div>
                           <div className="flex-1 space-y-1">
                             <div className="flex items-center justify-between">
                               <span className="text-xs font-semibold text-foreground">
-                                {authorConfig.emoji} {authorConfig.label}
+                                {authorConfig.label}
                               </span>
                               <span className="text-[10px] text-muted-foreground">
                                 {formatDistanceToNow(new Date(c.created_at), { addSuffix: true })}
@@ -509,7 +509,7 @@ export default function TaskModal({
                       handleAddComment();
                     }
                   }}
-                  placeholder={`Comment as ${ASSIGNEE_CONFIG[currentUser].emoji} ${ASSIGNEE_CONFIG[currentUser].label}...`}
+                  placeholder={`Comment as ${ASSIGNEE_CONFIG[currentUser].label}...`}
                   className="flex-1 px-2 py-1.5 bg-transparent border-none text-sm focus:ring-0 min-h-[40px] max-h-[120px] resize-y placeholder:text-muted-foreground/70"
                   disabled={addingComment}
                 />
