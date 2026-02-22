@@ -263,6 +263,14 @@ export default function TaskModal({
             <div className="space-y-2">
               <label className="text-sm font-medium flex items-center gap-2 text-muted-foreground">
                 <Flag className="h-4 w-4" /> Priority
+                <span
+                  className={cn(
+                    "ml-auto px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider whitespace-nowrap shadow-sm",
+                    PRIORITY_CONFIG[priority].className
+                  )}
+                >
+                  {PRIORITY_CONFIG[priority].label}
+                </span>
               </label>
               <select
                 value={priority}
