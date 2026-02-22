@@ -67,6 +67,18 @@ export default function Board({ project, tasks, setTasks, onTasksChange }: Board
       return matchesSearch && matchesAssignee && matchesPriority && matchesLabel;
     });
 
+    const toMs = (iso?: string) => {
+      if (!iso) return 0;
+      // Normalize Supabase timestamps (microseconds + +00:00) for iOS/Safari parsing
+      const normalized = iso
+        .replace(/\.(\d{3})\d+(?=[+-]\d\d:\d\d$)/, '.$1')
+        .replace(/\.(\d{3})\d+Z$/, '.$1Z')
+        .replace(/\+00:00$/, 'Z');
+
+      const t = Date.parse(normalized);
+      return Number.isFinite(t) ? t : 0;
+    };
+
     // 2. Map to columns
     return COLUMNS.map((col) => {
       const columnTasks = filteredTasks
@@ -77,17 +89,17 @@ export default function Board({ project, tasks, setTasks, onTasksChange }: Board
             return a.id.localeCompare(b.id);
           }
           if (sortBy === 'updated_desc') {
-            return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+            return toMs(b.updated_at) - toMs(a.updated_at);
           }
           if (sortBy === 'updated_asc') {
-            return new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime();
+            return toMs(a.updated_at) - toMs(b.updated_at);
           }
           if (sortBy === 'priority_desc') {
             const weights = { high: 3, medium: 2, low: 1 };
             const pa = weights[a.priority] || 0;
             const pb = weights[b.priority] || 0;
             if (pa !== pb) return pb - pa;
-            return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+            return toMs(b.updated_at) - toMs(a.updated_at);
           }
           return 0;
         })
