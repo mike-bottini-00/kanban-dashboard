@@ -22,6 +22,7 @@ export interface Task {
   updated_at: string;
   labels: string[];
   due_date: string | null;
+  scheduled_for: string | null;
   test_flag: boolean;
 }
 

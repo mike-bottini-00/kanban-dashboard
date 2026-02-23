@@ -2,6 +2,22 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { notificationService } from '@/lib/notifications';
 
+function normalizeOptionalTimestamp(value: unknown, fieldName: string): string | null | undefined {
+  if (value === undefined) return undefined;
+  if (value === null || value === '') return null;
+
+  if (typeof value !== 'string') {
+    throw new Error(`${fieldName} must be a valid ISO date string or null`);
+  }
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    throw new Error(`${fieldName} must be a valid ISO date string or null`);
+  }
+
+  return parsed.toISOString();
+}
+
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const projectId = searchParams.get('projectId');
@@ -36,9 +52,11 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { labels, ...rest } = body;
+    const { labels, scheduled_for, ...rest } = body;
+    const normalizedScheduledFor = normalizeOptionalTimestamp(scheduled_for, 'scheduled_for');
     const payload = {
       ...rest,
+      ...(normalizedScheduledFor !== undefined ? { scheduled_for: normalizedScheduledFor } : {}),
       metadata: {
         ...(rest.metadata ?? {}),
         ...(Array.isArray(labels) ? { labels } : {}),
@@ -77,7 +95,8 @@ export async function POST(req: NextRequest) {
 
 export async function PATCH(req: NextRequest) {
   try {
-    const { id, labels, changed_by, ...updates } = await req.json();
+    const { id, labels, changed_by, scheduled_for, ...updates } = await req.json();
+    const normalizedScheduledFor = normalizeOptionalTimestamp(scheduled_for, 'scheduled_for');
 
     // Fetch old task to compare changes
     const { data: oldTask } = await supabaseAdmin
@@ -134,9 +153,16 @@ export async function PATCH(req: NextRequest) {
       comments: newComments
     };
 
+    const updatePayload = {
+      ...updates,
+      ...(normalizedScheduledFor !== undefined ? { scheduled_for: normalizedScheduledFor } : {}),
+      metadata: nextMetadata,
+      updated_at: now,
+    };
+
     const { data, error } = await supabaseAdmin
       .from('tasks')
-      .update({ ...updates, metadata: nextMetadata, updated_at: now })
+      .update(updatePayload)
       .eq('id', id)
       .select()
       .single();
