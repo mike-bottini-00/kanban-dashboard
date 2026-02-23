@@ -18,6 +18,7 @@ interface BoardProps {
 const COLUMNS: { id: TaskStatus; title: string }[] = [
   { id: 'todo', title: 'To Do' },
   { id: 'in_progress', title: 'In Progress' },
+  { id: 'blocked', title: 'Blocked' },
   { id: 'review', title: 'Review' },
   { id: 'done', title: 'Done' },
 ];
