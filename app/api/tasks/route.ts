@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { notificationService } from '@/lib/notifications';
 
+const ALLOWED_TASK_STATUSES = new Set(['todo', 'in_progress', 'review', 'blocked', 'done', 'archived']);
+
 function normalizeOptionalTimestamp(value: unknown, fieldName: string): string | null | undefined {
   if (value === undefined) return undefined;
   if (value === null || value === '') return null;
@@ -16,6 +18,20 @@ function normalizeOptionalTimestamp(value: unknown, fieldName: string): string |
   }
 
   return parsed.toISOString();
+}
+
+function validateOptionalStatus(value: unknown, fieldName: string): string | undefined {
+  if (value === undefined) return undefined;
+  if (typeof value !== 'string') {
+    throw new Error(`${fieldName} must be a string`);
+  }
+
+  const normalized = value.trim();
+  if (!ALLOWED_TASK_STATUSES.has(normalized)) {
+    throw new Error(`${fieldName} must be one of: ${Array.from(ALLOWED_TASK_STATUSES).join(', ')}`);
+  }
+
+  return normalized;
 }
 
 export async function GET(req: NextRequest) {
@@ -54,8 +70,10 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { labels, scheduled_for, ...rest } = body;
     const normalizedScheduledFor = normalizeOptionalTimestamp(scheduled_for, 'scheduled_for');
+    const normalizedStatus = validateOptionalStatus(rest.status, 'status');
     const payload = {
       ...rest,
+      ...(normalizedStatus !== undefined ? { status: normalizedStatus } : {}),
       ...(normalizedScheduledFor !== undefined ? { scheduled_for: normalizedScheduledFor } : {}),
       metadata: {
         ...(rest.metadata ?? {}),
@@ -97,6 +115,7 @@ export async function PATCH(req: NextRequest) {
   try {
     const { id, labels, changed_by, scheduled_for, ...updates } = await req.json();
     const normalizedScheduledFor = normalizeOptionalTimestamp(scheduled_for, 'scheduled_for');
+    const normalizedStatus = validateOptionalStatus(updates.status, 'status');
 
     // Fetch old task to compare changes
     const { data: oldTask } = await supabaseAdmin
@@ -118,12 +137,12 @@ export async function PATCH(req: NextRequest) {
     const now = new Date().toISOString();
 
     if (oldTask) {
-        if (updates.status && updates.status !== oldTask.status) {
+        if (normalizedStatus && normalizedStatus !== oldTask.status) {
             newComments.push({
                 id: crypto.randomUUID(),
                 task_id: id,
                 author: statusChangeAuthor,
-                content: `Changed status to ${updates.status}`,
+                content: `Changed status to ${normalizedStatus}`,
                 created_at: now
             });
         }
@@ -155,6 +174,7 @@ export async function PATCH(req: NextRequest) {
 
     const updatePayload = {
       ...updates,
+      ...(normalizedStatus !== undefined ? { status: normalizedStatus } : {}),
       ...(normalizedScheduledFor !== undefined ? { scheduled_for: normalizedScheduledFor } : {}),
       metadata: nextMetadata,
       updated_at: now,
@@ -185,7 +205,7 @@ export async function PATCH(req: NextRequest) {
       }
 
       // 2. Status change to 'review' => notify Walter when update is performed by someone else
-      if (updates.status === 'review' && oldTask.status !== 'review' && statusChangeAuthor !== 'walter') {
+      if (normalizedStatus === 'review' && oldTask.status !== 'review' && statusChangeAuthor !== 'walter') {
         await notificationService.createNotification({
           userId: 'walter',
           type: 'status_change',
@@ -196,7 +216,7 @@ export async function PATCH(req: NextRequest) {
       }
 
       // 3. Status change to 'done'
-      if (updates.status === 'done' && oldTask.status !== 'done' && data.assignee !== 'unassigned') {
+      if (normalizedStatus === 'done' && oldTask.status !== 'done' && data.assignee !== 'unassigned') {
          // Notify the assignee (or maybe the reporter, but we don't have reporter field yet)
          // For now, let's just notify that it's done if it was assigned
          await notificationService.createNotification({

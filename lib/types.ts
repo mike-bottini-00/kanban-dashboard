@@ -1,4 +1,4 @@
-export type TaskStatus = 'todo' | 'in_progress' | 'review' | 'done';
+export type TaskStatus = 'todo' | 'in_progress' | 'review' | 'blocked' | 'done' | 'archived';
 export type TaskPriority = 'low' | 'medium' | 'high';
 export type TaskAssignee = 'walter' | 'mike' | 'gilfoyle' | 'dinesh' | 'unassigned';
 

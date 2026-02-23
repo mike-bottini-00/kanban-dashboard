@@ -10,7 +10,9 @@ export const STATUS_CONFIG: Record<TaskStatus, { title: string; borderColor: str
   todo: { title: 'To Do', borderColor: 'border-slate-200', dotColor: 'bg-slate-400' },
   in_progress: { title: 'In Progress', borderColor: 'border-blue-200', dotColor: 'bg-blue-500' },
   review: { title: 'Review', borderColor: 'border-purple-200', dotColor: 'bg-purple-500' },
+  blocked: { title: 'Blocked', borderColor: 'border-rose-300', dotColor: 'bg-rose-500' },
   done: { title: 'Done', borderColor: 'border-green-200', dotColor: 'bg-green-500' },
+  archived: { title: 'Archived', borderColor: 'border-zinc-300', dotColor: 'bg-zinc-500' },
 };
 
 export const ASSIGNEE_CONFIG: Record<TaskAssignee, { label: string; initial: string; color: string; tint: string }> = {
