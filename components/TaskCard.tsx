@@ -4,13 +4,24 @@ import { Task } from '@/lib/types';
 import { Draggable } from '@hello-pangea/dnd';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
-import { User, Clock } from 'lucide-react';
+import { User, Clock, Calendar } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { PRIORITY_CONFIG, ASSIGNEE_CONFIG, getLabelColor } from '@/lib/ui-config';
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
+
+const toMs = (iso?: string | null) => {
+  if (!iso) return 0;
+  const normalized = iso
+    .replace(/\.(\d{3})\d+(?=[+-]\d\d:\d\d$)/, '.$1')
+    .replace(/\.(\d{3})\d+Z$/, '.$1Z')
+    .replace(/\+00:00$/, 'Z');
+
+  const t = Date.parse(normalized);
+  return Number.isFinite(t) ? t : 0;
+};
 
 interface TaskCardProps {
   task: Task;
@@ -65,6 +76,16 @@ export default function TaskCard({ task, index, onClick }: TaskCardProps) {
             <p className="text-xs text-zinc-500 dark:text-zinc-400 line-clamp-2 mb-4 leading-relaxed italic">
               {task.description}
             </p>
+          )}
+
+
+          {task.scheduled_for && toMs(task.scheduled_for) > 0 && (
+            <div className="flex items-center gap-2 mb-3">
+              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider whitespace-nowrap bg-violet-50 text-violet-700 ring-1 ring-inset ring-violet-700/10">
+                <Calendar className="h-3 w-3" />
+                Scheduled {formatDistanceToNow(new Date(toMs(task.scheduled_for)), { addSuffix: true })}
+              </span>
+            </div>
           )}
 
           <div className="flex items-center justify-between pt-3 mt-1 border-t border-zinc-200/50 dark:border-zinc-800/50">

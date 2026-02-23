@@ -3,7 +3,7 @@ import { ASSIGNEE_CONFIG, ASSIGNEE_OPTIONS } from '@/lib/ui-config';
 import { DragDropContext, DropResult } from '@hello-pangea/dnd';
 import Column from './Column';
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { Plus, LayoutGrid, Search, X, Filter, User, ArrowDownWideNarrow } from 'lucide-react';
+import { Plus, LayoutGrid, Search, X, Filter, User, ArrowDownWideNarrow, Clock } from 'lucide-react';
 import TaskModal from './TaskModal';
 import BoardFiltersModal from './BoardFiltersModal';
 import MultiSelect, { MultiSelectOption } from './MultiSelect';
@@ -31,8 +31,13 @@ export default function Board({ project, tasks, setTasks, onTasksChange }: Board
   const [assigneeFilters, setAssigneeFilters] = useState<TaskAssignee[]>([]);
   const [priorityFilters, setPriorityFilters] = useState<TaskPriority[]>([]);
   const [labelFilter, setLabelFilter] = useState<'all' | 'unlabeled' | string>('all');
+  const [showFutureTasks, setShowFutureTasks] = useState(false);
   const [sortBy, setSortBy] = useState<'manual' | 'updated_desc' | 'updated_asc' | 'priority_desc'>('manual');
   const [currentUser, setCurrentUser] = useState<TaskAssignee>('walter'); // Default user for "Posting as"
+
+  const supportsScheduledFor = useMemo(() => {
+    return tasks.some((t) => Object.prototype.hasOwnProperty.call(t as any, 'scheduled_for'));
+  }, [tasks]);
 
   const availableLabels = useMemo(() => {
     const s = new Set<string>();
@@ -48,8 +53,25 @@ export default function Board({ project, tasks, setTasks, onTasksChange }: Board
   const columnsData = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
 
+    const toMs = (iso?: string) => {
+      if (!iso) return 0;
+      // Normalize Supabase timestamps (microseconds + +00:00) for iOS/Safari parsing
+      const normalized = iso
+        .replace(/\.(\d{3})\d+(?=[+-]\d\d:\d\d$)/, '.$1')
+        .replace(/\.(\d{3})\d+Z$/, '.$1Z')
+        .replace(/\+00:00$/, 'Z');
+
+      const t = Date.parse(normalized);
+      return Number.isFinite(t) ? t : 0;
+    };
+
+    const nowMs = Date.now();
+
     // 1. Apply Search and Filters
     const filteredTasks = tasks.filter((task) => {
+      const scheduledMs = toMs((task as any).scheduled_for ?? undefined);
+      const matchesScheduled = showFutureTasks || scheduledMs <= nowMs;
+
       const matchesSearch =
         q.length === 0 ||
         task.title.toLowerCase().includes(q) ||
@@ -64,20 +86,10 @@ export default function Board({ project, tasks, setTasks, onTasksChange }: Board
         labelFilter === 'all' ||
         (labelFilter === 'unlabeled' ? !hasLabels : (task.labels || []).includes(labelFilter));
 
-      return matchesSearch && matchesAssignee && matchesPriority && matchesLabel;
+      return matchesSearch && matchesAssignee && matchesPriority && matchesLabel && matchesScheduled;
     });
 
-    const toMs = (iso?: string) => {
-      if (!iso) return 0;
-      // Normalize Supabase timestamps (microseconds + +00:00) for iOS/Safari parsing
-      const normalized = iso
-        .replace(/\.(\d{3})\d+(?=[+-]\d\d:\d\d$)/, '.$1')
-        .replace(/\.(\d{3})\d+Z$/, '.$1Z')
-        .replace(/\+00:00$/, 'Z');
 
-      const t = Date.parse(normalized);
-      return Number.isFinite(t) ? t : 0;
-    };
 
     // 2. Map to columns
     return COLUMNS.map((col) => {
@@ -113,7 +125,7 @@ export default function Board({ project, tasks, setTasks, onTasksChange }: Board
         tasks: columnTasks,
       };
     });
-  }, [tasks, searchQuery, assigneeFilters, priorityFilters, labelFilter, sortBy]);
+  }, [tasks, searchQuery, assigneeFilters, priorityFilters, labelFilter, sortBy, showFutureTasks]);
 
   // Listen for mobile header events
   useEffect(() => {
@@ -223,6 +235,7 @@ export default function Board({ project, tasks, setTasks, onTasksChange }: Board
     setAssigneeFilters([]);
     setPriorityFilters([]);
     setLabelFilter('all');
+    setShowFutureTasks(false);
   };
 
   const toggleAssigneeFilter = (assignee: TaskAssignee) => {
@@ -343,7 +356,21 @@ export default function Board({ project, tasks, setTasks, onTasksChange }: Board
               </div>
             </div>
 
-            {(assigneeFilters.length > 0 || priorityFilters.length > 0 || labelFilter !== 'all') && (
+
+
+            <button
+              type="button"
+              onClick={() => setShowFutureTasks((v) => !v)}
+              className="flex items-center bg-slate-50 dark:bg-zinc-800 rounded-lg p-1.5 h-9 border border-transparent hover:bg-slate-100 dark:hover:bg-zinc-700 transition-colors"
+              aria-pressed={showFutureTasks}
+              title="Toggle visibility of future scheduled tasks"
+            >
+              <Clock className="h-4 w-4 text-muted-foreground ml-1" />
+              <span className="text-sm font-medium pr-8 py-0 max-w-[140px]">
+                {showFutureTasks ? 'Show Future: On' : 'Show Future: Off'}
+              </span>
+            </button>
+            {(assigneeFilters.length > 0 || priorityFilters.length > 0 || labelFilter !== 'all' || showFutureTasks) && (
               <button
                 type="button"
                 onClick={handleClearFilters}
@@ -412,6 +439,7 @@ export default function Board({ project, tasks, setTasks, onTasksChange }: Board
           currentUser={currentUser}
           onUserChange={setCurrentUser}
           onSuccess={handleTaskModalSuccess}
+          supportsScheduledFor={supportsScheduledFor}
         />
       )}
 
@@ -428,6 +456,8 @@ export default function Board({ project, tasks, setTasks, onTasksChange }: Board
         onClear={handleClearFilters}
         sortBy={sortBy}
         onSortBy={setSortBy}
+        showFutureTasks={showFutureTasks}
+        onShowFutureTasks={setShowFutureTasks}
       />
     </div>
   );

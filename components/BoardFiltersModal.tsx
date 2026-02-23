@@ -1,7 +1,7 @@
 'use client';
 
 import { TaskPriority, TaskAssignee } from '@/lib/types';
-import { Filter, X, Check } from 'lucide-react';
+import { Filter, X, Check, Clock } from 'lucide-react';
 import { ASSIGNEE_CONFIG, ASSIGNEE_OPTIONS, PRIORITY_CONFIG } from '@/lib/ui-config';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -30,6 +30,9 @@ interface BoardFiltersModalProps {
 
   sortBy?: SortOption;
   onSortBy?: (value: SortOption) => void;
+
+  showFutureTasks?: boolean;
+  onShowFutureTasks?: (value: boolean) => void;
 }
 
 const PRIORITIES: TaskPriority[] = ['low', 'medium', 'high'];
@@ -54,6 +57,8 @@ export default function BoardFiltersModal({
   onClear,
   sortBy = 'manual',
   onSortBy,
+  showFutureTasks = false,
+  onShowFutureTasks,
 }: BoardFiltersModalProps) {
   if (!isOpen) return null;
 
@@ -216,6 +221,31 @@ export default function BoardFiltersModal({
                   </button>
                 ))}
               </div>
+            </div>
+          )}
+
+          {onShowFutureTasks && (
+            <div className="space-y-3">
+              <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Upcoming</label>
+              <button
+                type="button"
+                onClick={() => onShowFutureTasks(!showFutureTasks)}
+                className={cn(
+                  "w-full flex items-center justify-between px-4 py-3 rounded-xl border text-sm font-medium transition-all",
+                  showFutureTasks
+                    ? "bg-primary text-primary-foreground border-primary shadow-sm ring-2 ring-primary/20"
+                    : "bg-background border-border text-foreground hover:border-primary/30"
+                )}
+              >
+                <span className="flex items-center gap-2">
+                  <Clock className="h-4 w-4" />
+                  Show future tasks
+                </span>
+                {showFutureTasks && <Check className="h-4 w-4" />}
+              </button>
+              <p className="text-[11px] text-muted-foreground">
+                When OFF, tasks with a future scheduled date are hidden from the board.
+              </p>
             </div>
           )}
         </div>

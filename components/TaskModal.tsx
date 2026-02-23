@@ -2,7 +2,7 @@
 
 import { Project, Task, TaskPriority, TaskAssignee, TaskStatus, TaskComment } from '@/lib/types';
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { X, Flag, Trash2, Layout, Tag, MessageSquare, Send, User } from 'lucide-react';
+import { X, Flag, Trash2, Layout, Tag, MessageSquare, Send, User, Calendar } from 'lucide-react';
 import { STATUS_CONFIG, PRIORITY_CONFIG, ASSIGNEE_CONFIG, ASSIGNEE_OPTIONS, getLabelColor } from '@/lib/ui-config';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -21,6 +21,7 @@ interface TaskModalProps {
   currentUser?: TaskAssignee;
   onUserChange?: (user: TaskAssignee) => void;
   onSuccess: (updatedTask?: Task) => void;
+  supportsScheduledFor?: boolean;
 }
 
 export default function TaskModal({
@@ -32,12 +33,14 @@ export default function TaskModal({
   currentUser = 'walter',
   onUserChange,
   onSuccess,
+  supportsScheduledFor = false,
 }: TaskModalProps) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [priority, setPriority] = useState<TaskPriority>('medium');
   const [assignee, setAssignee] = useState<TaskAssignee>('unassigned');
   const [status, setStatus] = useState<TaskStatus>('todo');
+  const [scheduledForDate, setScheduledForDate] = useState('');
 
   const [labels, setLabels] = useState<string[]>([]);
   const [newLabel, setNewLabel] = useState('');
@@ -50,6 +53,22 @@ export default function TaskModal({
   const [addingComment, setAddingComment] = useState(false);
   const [commentError, setCommentError] = useState<string | null>(null);
   const commentsEndRef = useRef<HTMLDivElement>(null);
+
+  const normalizeSupabaseIso = (iso: string) => {
+    return iso
+      .replace(/\.(\d{3})\d+(?=[+-]\d\d:\d\d$)/, '.$1')
+      .replace(/\.(\d{3})\d+Z$/, '.$1Z')
+      .replace(/\+00:00$/, 'Z');
+  };
+
+  const isoToDateInput = (iso: string) => {
+    const d = new Date(normalizeSupabaseIso(iso));
+    if (!Number.isFinite(d.getTime())) return '';
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  };
 
   useEffect(() => {
     if (commentsEndRef.current) {
@@ -65,6 +84,7 @@ export default function TaskModal({
       setAssignee(task.assignee);
       setStatus(task.status);
       setLabels(task.labels || []);
+      setScheduledForDate(task.scheduled_for ? isoToDateInput(task.scheduled_for) : '');
       setNewLabel('');
       setNewComment('');
       fetchComments(task.id);
@@ -75,6 +95,7 @@ export default function TaskModal({
       setAssignee('unassigned');
       setStatus('todo');
       setLabels([]);
+      setScheduledForDate('');
       setNewLabel('');
       setComments([]);
       setNewComment('');
@@ -162,7 +183,7 @@ export default function TaskModal({
     e.preventDefault();
     setLoading(true);
 
-    const taskData = {
+    const taskData: any = {
       project_id: project.id,
       title,
       description,
@@ -173,6 +194,12 @@ export default function TaskModal({
       updated_at: new Date().toISOString(),
       changed_by: currentUser,
     };
+
+    if (supportsScheduledFor) {
+      taskData.scheduled_for = scheduledForDate
+        ? new Date(`${scheduledForDate}T09:00:00`).toISOString()
+        : null;
+    }
 
     try {
       const res = task
@@ -306,6 +333,25 @@ export default function TaskModal({
                 ))}
               </select>
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium flex items-center gap-2 text-muted-foreground">
+              <Calendar className="h-4 w-4" /> When to do
+              {!supportsScheduledFor && (
+                <span className="ml-auto text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Coming soon</span>
+              )}
+            </label>
+            <input
+              type="date"
+              value={scheduledForDate}
+              onChange={(e) => setScheduledForDate(e.target.value)}
+              disabled={!supportsScheduledFor}
+              className="w-full px-4 py-2.5 rounded-lg border border-input bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm disabled:opacity-60 disabled:cursor-not-allowed"
+            />
+            <p className="text-xs text-muted-foreground">
+              Future scheduled tasks are hidden by default unless "Show future tasks" is enabled.
+            </p>
           </div>
 
           <div className="space-y-3">
